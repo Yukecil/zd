@@ -1,24 +1,35 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#171321">
-<title> 账本</title>
+
+<!-- ===== PWA / 全屏 & 图标 meta ===== -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="账本">
+<meta name="application-name" content="账本">
+<meta name="format-detection" content="telephone=no">
+<meta name="description" content="简单好用的借还账本">
+
+<title>账本</title>
 
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;width:100%;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#fff}
-body{min-height:100dvh;overflow-x:hidden;background:#171321}
+html,body{margin:0;width:100%;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#fff}
+body{min-height:100vh;min-height:100dvh;overflow-x:hidden;background:#171321}
+body.modal-open{overflow:hidden}
 button,input{font:inherit}
 button{color:inherit;border:0;cursor:pointer}
-#wallpaperLayer{position:fixed;inset:0;width:100%;height:100dvh;z-index:-2;overflow:hidden;background:linear-gradient(145deg,#211633,#101321)}
+#wallpaperLayer{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;z-index:-2;overflow:hidden;background:linear-gradient(145deg,#211633,#101321)}
 #wallpaperImage{width:100%;height:100%;object-fit:cover;object-position:center;display:none}
 #wallpaperShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,9,25,.48),rgba(12,9,25,.58))}
 .app{
  width:100%;
  max-width:600px;
+ min-height:100vh;
  min-height:100dvh;
  margin:auto;
  padding:calc(env(safe-area-inset-top) + 51px) 17px calc(env(safe-area-inset-bottom) + 28px);
@@ -67,21 +78,38 @@ button{color:inherit;border:0;cursor:pointer}
 .bill-card:active{transform:scale(.985)}
 .bill-info{min-width:0;flex:1}
 .bill-name{font-size:15px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bill-type{font-size:12px;color:rgba(255,255,255,.68);margin-top:6px}
+
+/* ===== 新增：红色毛玻璃标签样式 ===== */
+.bill-type-tag {
+ display: inline-flex;
+ align-items: center;
+ padding: 4px 9px;
+ margin-top: 7px;
+ font-size: 11px;
+ font-weight: 700;
+ border-radius: 7px;
+ background: rgba(255, 69, 58, 0.22);
+ border: 1px solid rgba(255, 100, 90, 0.45);
+ backdrop-filter: blur(12px);
+ -webkit-backdrop-filter: blur(12px);
+ color: #ffb3b3;
+ box-shadow: 0 2px 8px rgba(255, 59, 48, 0.15), inset 0 1px 1px rgba(255,255,255,0.15);
+}
+
 .bill-right{text-align:right;flex-shrink:0}
 .bill-amount{font-size:18px;font-weight:850;font-variant-numeric:tabular-nums}
 .bill-status{font-size:11px;margin-top:5px;color:#b9f5cf}
 .bill-status.done{color:#c9c3d5}
 .empty{padding:38px 15px;text-align:center;color:rgba(255,255,255,.65);font-size:13px;border-radius:18px}
-.modal{position:fixed;inset:0;z-index:10;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.52);padding:15px;padding-bottom:calc(env(safe-area-inset-bottom) + 15px)}
+.modal{position:fixed;inset:0;z-index:10;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.52);padding:15px;padding-bottom:calc(env(safe-area-inset-bottom) + 15px);overscroll-behavior:contain}
 .modal.show{display:flex}
-.modal-card{width:100%;max-width:560px;max-height:88dvh;overflow-y:auto;border-radius:25px;padding:22px 19px;background:rgba(31,25,48,.91);border:1px solid rgba(255,255,255,.2);box-shadow:0 15px 50px rgba(0,0,0,.35);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px)}
+.modal-card{width:100%;max-width:560px;max-height:88vh;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-radius:25px;padding:22px 19px;background:rgba(31,25,48,.91);border:1px solid rgba(255,255,255,.2);box-shadow:0 15px 50px rgba(0,0,0,.35);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px)}
 .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .modal-title{font-size:18px;font-weight:850}
 .close-btn{width:31px;height:31px;border-radius:50%;background:rgba(255,255,255,.13);font-size:20px}
 .field{margin:15px 0}
 .field label{display:block;font-size:13px;color:rgba(255,255,255,.72);margin-bottom:9px}
-.field input{width:100%;height:47px;border-radius:13px;padding:0 13px;color:#fff;outline:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);font-size:15px}
+.field input{width:100%;height:47px;border-radius:13px;padding:0 13px;color:#fff;outline:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);font-size:16px}
 .field input::placeholder{color:rgba(255,255,255,.4)}
 .type-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .type-option{padding:12px 7px;border-radius:13px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);font-size:13px;font-weight:700}
@@ -92,7 +120,7 @@ button{color:inherit;border:0;cursor:pointer}
 .summary-cell{padding:12px 8px;border-radius:13px;text-align:center;background:rgba(255,255,255,.09)}
 .summary-label{font-size:11px;color:rgba(255,255,255,.62);margin-bottom:8px}
 .summary-value{font-size:15px;font-weight:850;overflow-wrap:anywhere}
-.detail-name{font-size:19px;font-weight:850;margin-bottom:16px}
+.detail-name{font-size:19px;font-weight:850;margin-bottom:16px;overflow-wrap:anywhere}
 .history-title{font-size:14px;font-weight:800;margin:20px 0 11px}
 .history-item{display:flex;justify-content:space-between;align-items:center;padding:12px 2px;border-bottom:1px solid rgba(255,255,255,.1);font-size:13px;gap:10px}
 .history-type{color:rgba(255,255,255,.72)}
@@ -101,7 +129,7 @@ button{color:inherit;border:0;cursor:pointer}
 .history-amount.repay{color:#8ff0b2}
 .history-amount.increase{color:#8ecaff}
 .no-history{font-size:12px;color:rgba(255,255,255,.5);padding:12px 0}
-.toast{position:fixed;z-index:30;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%);padding:11px 18px;border-radius:30px;background:rgba(25,20,39,.92);border:1px solid rgba(255,255,255,.2);font-size:13px;display:none;white-space:nowrap}
+.toast{position:fixed;z-index:30;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%);padding:11px 18px;border-radius:20px;background:rgba(25,20,39,.92);border:1px solid rgba(255,255,255,.2);font-size:13px;display:none;max-width:86vw;text-align:center;line-height:1.4}
 .toast.show{display:block}
 </style>
 </head>
@@ -126,9 +154,10 @@ button{color:inherit;border:0;cursor:pointer}
   <button class="primary-btn" id="openAdd"><span>＋</span>添加账单</button>
  </div>
 
+ <!-- 顶部筛选文案统一改为 欠款 / 借款 -->
  <div class="filters">
-  <button class="filter-btn" data-filter="out">我欠别人</button>
-  <button class="filter-btn active" data-filter="in">别人欠我</button>
+  <button class="filter-btn" data-filter="out">欠款</button>
+  <button class="filter-btn active" data-filter="in">借款</button>
  </div>
 
  <h2 class="section-title">账单记录</h2>
@@ -145,8 +174,9 @@ button{color:inherit;border:0;cursor:pointer}
   <div class="field">
    <label>账单类型</label>
    <div class="type-options" id="typeOptions">
-    <button class="type-option" data-type="out">我欠别人</button>
-    <button class="type-option active" data-type="in">别人欠我</button>
+    <!-- 添加选项补充说明，避免歧义 -->
+    <button class="type-option" data-type="out">欠款（我欠别人）</button>
+    <button class="type-option active" data-type="in">借款（别人欠我）</button>
    </div>
   </div>
   <div class="field">
@@ -205,16 +235,104 @@ button{color:inherit;border:0;cursor:pointer}
 <div class="toast" id="toast"></div>
 
 <script>
-const BILL_KEY = 'debt-tracker-v1';
-let bills = [];
-let currentFilter = 'in';
-let selectedType = 'in';
-let currentBillId = null;
-let wallpaperURL = null;
+/* ================= PWA：动态生成图标 + manifest ================= */
+function drawIcon(size){
+ const c=document.createElement('canvas');
+ c.width=c.height=size;
+ const ctx=c.getContext('2d');
+ const bg=ctx.createLinearGradient(0,0,size,size);
+ bg.addColorStop(0,'#9a6dff');
+ bg.addColorStop(1,'#5533b5');
+ ctx.fillStyle=bg;
+ ctx.fillRect(0,0,size,size);
+ const halo=ctx.createRadialGradient(size*.5,size*.28,0,size*.5,size*.28,size*.8);
+ halo.addColorStop(0,'rgba(255,255,255,.22)');
+ halo.addColorStop(1,'rgba(255,255,255,0)');
+ ctx.fillStyle=halo;
+ ctx.fillRect(0,0,size,size);
+ const cx=size*.5, cy=size*.42, r=size*.235;
+ const coin=ctx.createRadialGradient(cx-r*.35,cy-r*.4,r*.12,cx,cy,r);
+ coin.addColorStop(0,'#fffbd0');
+ coin.addColorStop(.32,'#ffd95f');
+ coin.addColorStop(.75,'#e89b16');
+ coin.addColorStop(1,'#a75a09');
+ ctx.beginPath();
+ ctx.arc(cx,cy,r,0,Math.PI*2);
+ ctx.fillStyle=coin;
+ ctx.fill();
+ ctx.lineWidth=size*.02;
+ ctx.strokeStyle='rgba(255,247,200,.85)';
+ ctx.stroke();
+ ctx.textAlign='center';
+ ctx.textBaseline='middle';
+ ctx.fillStyle='rgba(133,70,8,.95)';
+ ctx.font='bold '+(size*.28)+'px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+ ctx.fillText('¥',cx,cy+size*.015);
+ ctx.fillStyle='#fff';
+ ctx.font='bold '+(size*.155)+'px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+ ctx.textBaseline='alphabetic';
+ ctx.fillText('账本',cx,size*.885);
+ return c.toDataURL('image/png');
+}
 
-const $ = id => document.getElementById(id);
-const money = n => Number(n || 0).toFixed(2);
-const nowText = () => new Date().toLocaleString('zh-CN',{hour12:false});
+const ICON_512=drawIcon(512);
+const ICON_192=drawIcon(192);
+const ICON_180=drawIcon(180);
+
+function addHeadLink(rel,href,attrs){
+ const link=document.createElement('link');
+ link.rel=rel;
+ link.href=href;
+ if(attrs)for(const k in attrs)link.setAttribute(k,attrs[k]);
+ document.head.appendChild(link);
+ return link;
+}
+
+addHeadLink('icon',ICON_192,{sizes:'192x192',type:'image/png'});
+addHeadLink('apple-touch-icon',ICON_180,{sizes:'180x180'});
+addHeadLink('apple-touch-icon',ICON_192,{sizes:'192x192'});
+addHeadLink('apple-touch-icon',ICON_512,{sizes:'512x512'});
+addHeadLink('apple-touch-icon-precomposed',ICON_180,{sizes:'180x180'});
+
+(function injectManifest(){
+ try{
+  if(!/^https?:$/.test(location.protocol))return;
+  const dir=location.origin+location.pathname.replace(/[^/]*$/,'');
+  const manifest={
+   name:'账本',
+   short_name:'账本',
+   description:'简单好用的借还账本',
+   lang:'zh-CN',
+   start_url:location.origin+location.pathname+location.search,
+   scope:dir,
+   display:'standalone',
+   display_override:['standalone','minimal-ui','browser'],
+   orientation:'portrait',
+   background_color:'#171321',
+   theme_color:'#171321',
+   icons:[
+    {src:ICON_192,sizes:'192x192',type:'image/png',purpose:'any'},
+    {src:ICON_512,sizes:'512x512',type:'image/png',purpose:'any'}
+   ]
+  };
+  const blobURL=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'}));
+  addHeadLink('manifest',blobURL);
+ }catch(err){
+  console.warn('manifest 注入失败',err);
+ }
+})();
+
+/* ================= 业务逻辑 ================= */
+const BILL_KEY='debt-tracker-v1';
+let bills=[];
+let currentFilter='in';
+let selectedType='in';
+let currentBillId=null;
+let wallpaperURL=null;
+
+const $=id=>document.getElementById(id);
+const money=n=>Number(n||0).toFixed(2);
+const nowText=()=>new Date().toLocaleString('zh-CN',{hour12:false});
 
 function toast(message){
  const el=$('toast');
@@ -224,23 +342,29 @@ function toast(message){
  toast.timer=setTimeout(()=>el.classList.remove('show'),1900);
 }
 
-function openModal(id){$(id).classList.add('show')}
-function closeModal(id){$(id).classList.remove('show')}
+function openModal(id){
+ $(id).classList.add('show');
+ document.body.classList.add('modal-open');
+}
+function closeModal(id){
+ $(id).classList.remove('show');
+ if(!document.querySelector('.modal.show'))document.body.classList.remove('modal-open');
+}
 
 document.querySelectorAll('[data-close]').forEach(btn=>{
  btn.addEventListener('click',()=>closeModal(btn.dataset.close));
 });
 document.querySelectorAll('.modal').forEach(modal=>{
  modal.addEventListener('click',e=>{
-  if(e.target===modal)modal.classList.remove('show');
+  if(e.target===modal)closeModal(modal.id);
  });
 });
 
 /* 账单数据 */
 function normalizeBill(item,index){
- const original = Number(item.originalAmount ?? item.totalAmount ?? item.amount ?? item.money ?? 0);
- const paid = Number(item.paidAmount ?? item.repaidAmount ?? item.paid ?? 0);
- const amount = Number(item.amount ?? Math.max(0,original-paid));
+ const original=Number(item.originalAmount ?? item.totalAmount ?? item.amount ?? item.money ?? 0);
+ const paid=Number(item.paidAmount ?? item.repaidAmount ?? item.paid ?? 0);
+ const amount=Number(item.amount ?? Math.max(0,original-paid));
  return {
   id:item.id ?? ('bill-'+Date.now()+'-'+index),
   type:item.type==='out'?'out':'in',
@@ -281,10 +405,11 @@ function renderList(){
   const done=b.amount<=0;
   const card=document.createElement('div');
   card.className='bill-card glass';
+  // 修改这里：渲染为 红色毛玻璃标签（欠款 / 借款）
   card.innerHTML=`
    <div class="bill-info">
     <div class="bill-name"></div>
-    <div class="bill-type">${b.type==='in'?'别人欠我':'我欠别人'}</div>
+    <div class="bill-type-tag">${b.type==='in'?'借款':'欠款'}</div>
    </div>
    <div class="bill-right">
     <div class="bill-amount">¥${money(b.amount)}</div>
@@ -371,6 +496,7 @@ function renderDetail(){
  }else{
   historyHTML='<div class="no-history">暂无操作记录</div>';
  }
+ // 详情页也统一用新样式和文案
  $('detailContent').innerHTML=`
   <div class="detail-name">${escapeHTML(b.name)}</div>
   <div class="detail-summary">
@@ -379,8 +505,8 @@ function renderDetail(){
    <div class="summary-cell"><div class="summary-label">剩余金额</div><div class="summary-value">¥${money(b.amount)}</div></div>
   </div>
   <div class="summary-cell" style="text-align:left;margin-bottom:13px">
-   <div class="summary-label">账单类型</div>
-   <div style="font-size:13px;font-weight:750">${b.type==='in'?'别人欠我':'我欠别人'}</div>
+   <div class="summary-label" style="margin-bottom:8px">账单类型</div>
+   <div class="bill-type-tag" style="margin-top:0;font-size:12px;padding:4px 12px">${b.type==='in'?'借款':'欠款'}</div>
   </div>
   <button class="action-btn" id="detailIncrease">＋ 增加金额</button>
   ${done?'':'<button class="secondary-btn" id="detailRepay">'+(b.type==='in'?'确认收款':'记录还款')+'</button>'}
