@@ -235,7 +235,33 @@ button{
  gap:11px;
 }
 
+/* ===== 右滑删除 ===== */
+
+.swipe-wrap{
+ position:relative;
+ border-radius:18px;
+ overflow:hidden;
+ isolation:isolate;
+}
+
+.swipe-delete{
+ position:absolute;
+ inset:0;
+ display:flex;
+ align-items:center;
+ padding-left:22px;
+ gap:8px;
+ background:linear-gradient(135deg,#ff5757,#c62828);
+ color:#fff;
+ font-size:15px;
+ font-weight:800;
+ letter-spacing:1px;
+ border-radius:18px;
+}
+
 .bill-card{
+ position:relative;
+ z-index:1;
  padding:16px;
  border-radius:18px;
  display:flex;
@@ -244,6 +270,8 @@ button{
  gap:12px;
  cursor:pointer;
  transition:transform .15s;
+ will-change:transform;
+ touch-action:pan-y;
 }
 
 .bill-card:active{
@@ -510,6 +538,8 @@ button{
  padding:12px 0;
 }
 
+/* ===== Toast（含撤销按钮） ===== */
+
 .toast{
  position:fixed;
  z-index:30;
@@ -528,7 +558,21 @@ button{
 }
 
 .toast.show{
- display:block;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:12px;
+}
+
+.toast-action{
+ flex-shrink:0;
+ padding:6px 13px;
+ border-radius:12px;
+ background:rgba(255,255,255,.2);
+ border:1px solid rgba(255,255,255,.25);
+ font-size:13px;
+ font-weight:800;
+ color:#d9c4ff;
 }
 </style>
 </head>
@@ -757,12 +801,40 @@ const $=id=>document.getElementById(id);
 const money=n=>Number(n||0).toFixed(2);
 const nowText=()=>new Date().toLocaleString('zh-CN',{hour12:false});
 
-function toast(message){
+/* ===== 支持撤销按钮的 toast ===== */
+
+function toast(message,actionLabel,action){
  const el=$('toast');
- el.textContent=message;
- el.classList.add('show');
+
  clearTimeout(toast.timer);
- toast.timer=setTimeout(()=>el.classList.remove('show'),1900);
+ el.innerHTML='';
+
+ const text=document.createElement('span');
+ text.textContent=message;
+ el.appendChild(text);
+
+ if(actionLabel&&typeof action==='function'){
+  const btn=document.createElement('button');
+  btn.type='button';
+  btn.className='toast-action';
+  btn.textContent=actionLabel;
+
+  btn.addEventListener('click',e=>{
+   e.stopPropagation();
+   el.classList.remove('show');
+   clearTimeout(toast.timer);
+   action();
+  });
+
+  el.appendChild(btn);
+ }
+
+ el.classList.add('show');
+
+ toast.timer=setTimeout(
+  ()=>el.classList.remove('show'),
+  actionLabel?4200:1900
+ );
 }
 
 function openModal(id){
@@ -826,6 +898,8 @@ function save(){
  }
 }
 
+/* ================= 列表渲染 ================= */
+
 function renderList(){
  const list=$('billList');
  const filtered=bills.filter(b=>b.type===currentFilter);
@@ -843,8 +917,19 @@ function renderList(){
 
  filtered.slice().reverse().forEach(b=>{
   const done=b.amount<=0;
-  const card=document.createElement('div');
 
+  /* 滑动容器 */
+  const wrap=document.createElement('div');
+  wrap.className='swipe-wrap';
+
+  /* 底层删除背景 */
+  const delBg=document.createElement('div');
+  delBg.className='swipe-delete';
+  delBg.textContent='🗑 删除';
+  wrap.appendChild(delBg);
+
+  /* 卡片 */
+  const card=document.createElement('div');
   card.className='bill-card glass';
 
   card.innerHTML=`
@@ -858,11 +943,151 @@ function renderList(){
    </div>`;
 
   card.querySelector('.bill-name').textContent=b.name;
-  card.addEventListener('click',()=>openDetail(b.id));
 
-  list.appendChild(card);
+  card.addEventListener('click',()=>{
+   if(Date.now()-(card._swipeEnd||0)<400)return;  // 刚滑动完不响应点击
+   openDetail(b.id);
+  });
+
+  wrap.appendChild(card);
+  list.appendChild(wrap);
+
+  bindSwipe(card,b.id);
  });
 }
+
+/* ================= 删除账单（可撤销） ================= */
+
+function deleteBill(id){
+ const index=bills.findIndex(b=>String(b.id)===String(id));
+ if(index<0)return;
+
+ const removed=bills.splice(index,1)[0];
+
+ if(String(currentBillId)===String(id)){
+  currentBillId=null;
+  closeModal('detailModal');
+ }
+
+ save();
+ renderList();
+
+ toast('已删除「'+removed.name+'」','撤销',()=>{
+  bills.splice(Math.min(index,bills.length),0,removed);
+  save();
+  renderList();
+  toast('已恢复');
+ });
+}
+
+/* ================= 右滑手势 ================= */
+
+function bindSwipe(card,billId){
+ let startX=0,startY=0,dx=0;
+ let dragging=false;
+ let horizontal=false;
+
+ const threshold=()=>Math.min(110,card.offsetWidth*0.38);
+
+ card.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+
+  startX=e.clientX;
+  startY=e.clientY;
+  dx=0;
+  dragging=true;
+  horizontal=false;
+  card.style.transition='none';
+  card.style.transform='translateX(0px)';  // 覆盖 :active 缩放
+ });
+
+ card.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+
+  const moveX=e.clientX-startX;
+  const moveY=e.clientY-startY;
+
+  /* 方向判定：竖向优先放行滚动 */
+  if(!horizontal){
+   if(Math.abs(moveX)<7&&Math.abs(moveY)<7)return;
+
+   if(Math.abs(moveY)>Math.abs(moveX)){
+    dragging=false;
+    card.style.transition='';
+    card.style.transform='';
+    return;
+   }
+
+   horizontal=true;
+
+   try{
+    card.setPointerCapture(e.pointerId);
+   }catch(err){}
+  }
+
+  if(e.cancelable)e.preventDefault();
+
+  dx=Math.max(0,moveX);          // 只允许向右
+
+  const limit=card.offsetWidth*0.75;
+
+  if(dx>limit){
+   dx=limit+(dx-limit)*0.3;      // 超出后加阻尼
+  }
+
+  card.style.transform='translateX('+dx+'px)';
+ });
+
+ function endSwipe(e){
+  if(!dragging)return;
+
+  dragging=false;
+
+  if(!horizontal){
+   card.style.transition='';
+   card.style.transform='';
+   return;
+  }
+
+  card._swipeEnd=Date.now();
+  card.style.transition='transform .2s ease';
+
+  if(dx>=threshold()){
+   /* 滑出并删除 */
+   card.style.transform='translateX('+card.offsetWidth+'px)';
+   setTimeout(()=>deleteBill(billId),180);
+  }else{
+   card.style.transform='translateX(0)';
+   setTimeout(()=>{
+    card.style.transition='';
+    card.style.transform='';
+   },220);
+  }
+
+  if(e&&e.pointerId!=null){
+   try{
+    card.releasePointerCapture(e.pointerId);
+   }catch(err){}
+  }
+ }
+
+ card.addEventListener('pointerup',endSwipe);
+
+ card.addEventListener('pointercancel',()=>{
+  if(!dragging)return;
+
+  dragging=false;
+  card.style.transition='transform .2s ease';
+  card.style.transform='translateX(0)';
+
+  setTimeout(()=>{
+   card.style.transition='';
+   card.style.transform='';
+  },220);
+ });
+}
+
+/* ================= 筛选 ================= */
 
 document.querySelectorAll('.filter-btn').forEach(btn=>{
  btn.addEventListener('click',()=>{
@@ -1155,8 +1380,6 @@ async function saveWallpaper(blob){
  });
 }
 
-/* 已修复：完整关闭 Promise 和函数 */
-
 async function readWallpaper(){
  const db=await openWallpaperDB();
 
@@ -1284,12 +1507,6 @@ async function initWallpaper(){
 }
 
 /* ================= iPhone 屏幕高度修复 ================= */
-
-/*
- 页面内容跟随可视视口高度变化。
- 壁纸层不再被 visualViewport.height 限制，
- 而是由 CSS bottom:-180px 延伸到屏幕底部。
-*/
 
 function updateViewportHeight(){
  const height=window.visualViewport
