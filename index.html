@@ -4,1078 +4,551 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#171326">
-<title>欠账记账</title>
+<meta name="theme-color" content="#171321">
+<title> 账本</title>
 
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-
-:root{
-  --wallpaper:none;
-  --glass:rgba(255,255,255,.16);
-  --glass-border:rgba(255,255,255,.25);
-  --text:#fff;
-  --muted:rgba(255,255,255,.7);
+html,body{margin:0;width:100%;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#fff}
+body{min-height:100dvh;overflow-x:hidden;background:#171321}
+button,input{font:inherit}
+button{color:inherit;border:0;cursor:pointer}
+#wallpaperLayer{position:fixed;inset:0;width:100%;height:100dvh;z-index:-2;overflow:hidden;background:linear-gradient(145deg,#211633,#101321)}
+#wallpaperImage{width:100%;height:100%;object-fit:cover;object-position:center;display:none}
+#wallpaperShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,9,25,.48),rgba(12,9,25,.58))}
+.app{width:100%;max-width:600px;min-height:100dvh;margin:auto;padding:calc(env(safe-area-inset-top) + 16px) 17px calc(env(safe-area-inset-bottom) + 28px)}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:27px}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.coin{
+ width:49px;height:49px;border-radius:50%;flex-shrink:0;
+ display:grid;place-items:center;font-size:27px;
+ background:radial-gradient(circle at 32% 25%,#fff4a8 0 7%,#ffd85b 20%,#e99a19 56%,#9c4c08 100%);
+ border:2px solid rgba(255,238,166,.9);
+ box-shadow:0 0 0 3px rgba(255,196,64,.13),0 5px 18px rgba(255,173,40,.25),inset 0 2px 5px rgba(255,255,255,.65);
 }
-
-html,body{
-  margin:0;
-  padding:0;
-  width:100%;
-  min-height:100%;
-  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
-  color:var(--text);
-  background:#171326;
-  overscroll-behavior:none;
+.brand-title{font-size:21px;font-weight:850;letter-spacing:1px;text-shadow:0 2px 12px rgba(0,0,0,.35);white-space:nowrap}
+.wallpaper-btn{
+ width:43px;height:43px;border-radius:50%;flex-shrink:0;
+ background:linear-gradient(145deg,rgba(255,255,255,.3),rgba(255,255,255,.1));
+ border:1px solid rgba(255,255,255,.42);
+ box-shadow:0 5px 18px rgba(0,0,0,.2),inset 0 1px 5px rgba(255,255,255,.25);
+ font-size:29px;font-weight:300;line-height:1;
+ display:grid;place-items:center;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)
 }
-
-body{
-  min-height:100dvh;
-  position:relative;
-  isolation:isolate;
+.wallpaper-btn:active,.primary-btn:active,.filter-btn:active{transform:scale(.96)}
+#wallpaperInput{display:none}
+.glass{
+ background:rgba(255,255,255,.13);
+ border:1px solid rgba(255,255,255,.23);
+ box-shadow:0 8px 28px rgba(0,0,0,.15),inset 0 1px 1px rgba(255,255,255,.13);
+ backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)
 }
-
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  z-index:-2;
-  background-image:var(--wallpaper),linear-gradient(145deg,#171326,#30204c,#171326);
-  background-position:center;
-  background-size:cover;
-  background-repeat:no-repeat;
-}
-
-body::after{
-  content:"";
-  position:fixed;
-  inset:0;
-  z-index:-1;
-  pointer-events:none;
-  background:rgba(13,10,28,.28);
-}
-
-button,input{font:inherit;outline:none}
-button{border:none;cursor:pointer}
-
-.app{
-  width:100%;
-  max-width:650px;
-  min-height:100dvh;
-  margin:0 auto;
-  padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 25px);
-}
-
-.header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:27px;
-}
-
-.header h1{
-  margin:0;
-  font-size:26px;
-  font-weight:800;
-  letter-spacing:-.5px;
-  text-shadow:0 2px 12px rgba(0,0,0,.2);
-}
-
-.header-sub{
-  margin-top:6px;
-  color:var(--muted);
-  font-size:12px;
-}
-
-.wallpaper-actions{
-  display:flex;
-  flex-direction:column;
-  gap:7px;
-  flex-shrink:0;
-}
-
-.wallpaper-btn,.reset-wallpaper-btn{
-  padding:9px 12px;
-  border-radius:12px;
-  color:#fff;
-  background:rgba(255,255,255,.17);
-  border:1px solid var(--glass-border);
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
-  font-size:12px;
-}
-
-.reset-wallpaper-btn{
-  background:rgba(0,0,0,.18);
-  color:rgba(255,255,255,.8);
-}
-
-.section-title{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin:0 2px 16px;
-}
-
-.section-title h2{
-  margin:0;
-  font-size:17px;
-  font-weight:700;
-}
-
-.add-btn{
-  padding:11px 16px;
-  border-radius:13px;
-  background:rgba(255,255,255,.22);
-  border:1px solid var(--glass-border);
-  color:#fff;
-  font-size:13px;
-  font-weight:650;
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
-}
-
-.filters{
-  display:flex;
-  gap:10px;
-  margin-bottom:16px;
-}
-
-.filter-btn{
-  flex:1;
-  padding:13px 8px;
-  border-radius:13px;
-  background:rgba(255,255,255,.13);
-  border:1px solid rgba(255,255,255,.2);
-  color:rgba(255,255,255,.8);
-  font-size:14px;
-  backdrop-filter:blur(15px);
-  -webkit-backdrop-filter:blur(15px);
-}
-
-.filter-btn.active{
-  background:rgba(255,255,255,.3);
-  border-color:rgba(255,255,255,.48);
-  color:#fff;
-  font-weight:750;
-}
-
-.bill-list{
-  display:flex;
-  flex-direction:column;
-  gap:11px;
-}
-
-.bill-item{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  padding:18px 16px;
-  border-radius:18px;
-  background:rgba(255,255,255,.16);
-  border:1px solid rgba(255,255,255,.23);
-  box-shadow:0 5px 20px rgba(0,0,0,.08);
-  backdrop-filter:blur(22px);
-  -webkit-backdrop-filter:blur(22px);
-  cursor:pointer;
-}
-
-.bill-left{min-width:0;flex:1}
-
-.bill-name{
-  font-size:15px;
-  font-weight:700;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-.bill-meta{
-  margin-top:7px;
-  font-size:11px;
-  color:rgba(255,255,255,.65);
-}
-
-.bill-right{text-align:right;flex-shrink:0}
-
-.bill-amount{
-  font-size:17px;
-  font-weight:800;
-}
-
-.bill-amount.in{color:#8df2c2}
-.bill-amount.out{color:#ffb3a6}
-
-.bill-status{
-  display:inline-block;
-  margin-top:6px;
-  padding:4px 9px;
-  border-radius:20px;
-  background:rgba(255,255,255,.15);
-  color:rgba(255,255,255,.75);
-  font-size:10px;
-}
-
-.bill-status.settled{
-  background:rgba(56,200,139,.2);
-  color:#9af2c8;
-}
-
-.empty{
-  padding:45px 15px;
-  text-align:center;
-  color:rgba(255,255,255,.65);
-  font-size:13px;
-  background:rgba(255,255,255,.12);
-  border:1px solid rgba(255,255,255,.18);
-  border-radius:17px;
-  backdrop-filter:blur(18px);
-  -webkit-backdrop-filter:blur(18px);
-}
-
-/* 弹窗 */
-
-.modal{
-  display:none;
-  position:fixed;
-  inset:0;
-  z-index:20;
-  align-items:flex-end;
-  justify-content:center;
-  background:rgba(0,0,0,.45);
-  padding-top:30px;
-}
-
-.modal.show{display:flex}
-
-.modal-card{
-  width:100%;
-  max-width:650px;
-  max-height:88dvh;
-  overflow-y:auto;
-  -webkit-overflow-scrolling:touch;
-  padding:22px 20px calc(env(safe-area-inset-bottom) + 25px);
-  border-radius:24px 24px 0 0;
-  background:rgba(32,26,51,.82);
-  border:1px solid rgba(255,255,255,.2);
-  box-shadow:0 -10px 40px rgba(0,0,0,.2);
-  backdrop-filter:blur(30px);
-  -webkit-backdrop-filter:blur(30px);
-}
-
-.modal-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:22px;
-}
-
-.modal-header h3{
-  margin:0;
-  font-size:19px;
-  font-weight:750;
-}
-
-.close-btn{
-  width:33px;
-  height:33px;
-  border-radius:50%;
-  background:rgba(255,255,255,.15);
-  color:#fff;
-  font-size:20px;
-}
-
-.form-group{margin-bottom:17px}
-
-.form-group label{
-  display:block;
-  margin-bottom:9px;
-  color:rgba(255,255,255,.75);
-  font-size:13px;
-}
-
-.form-group input{
-  width:100%;
-  height:49px;
-  padding:0 14px;
-  border:1px solid rgba(255,255,255,.2);
-  border-radius:13px;
-  background:rgba(255,255,255,.12);
-  color:#fff;
-  font-size:15px;
-}
-
-input::placeholder{color:rgba(255,255,255,.45)}
-
-.type-options{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
-
-.type-option{
-  padding:13px 8px;
-  border:1px solid rgba(255,255,255,.2);
-  border-radius:12px;
-  background:rgba(255,255,255,.1);
-  color:rgba(255,255,255,.75);
-  font-size:13px;
-}
-
-.type-option.active{
-  border-color:rgba(255,255,255,.55);
-  background:rgba(255,255,255,.25);
-  color:#fff;
-  font-weight:700;
-}
-
+.add-area{display:flex;justify-content:center;margin:8px 0 23px}
 .primary-btn{
-  width:100%;
-  height:49px;
-  border-radius:13px;
-  background:rgba(255,255,255,.88);
-  color:#292039;
-  font-size:15px;
-  font-weight:750;
+ min-width:180px;padding:14px 28px;border-radius:18px;
+ background:linear-gradient(135deg,#a879ff,#7654e8);
+ box-shadow:0 8px 24px rgba(119,75,220,.35),inset 0 1px 1px rgba(255,255,255,.4);
+ font-size:16px;font-weight:800;letter-spacing:1px;
+ transition:transform .15s
 }
-
-.detail-top{
-  padding:21px 16px;
-  border-radius:17px;
-  background:rgba(255,255,255,.12);
-  border:1px solid rgba(255,255,255,.17);
-  text-align:center;
-  margin-bottom:18px;
-}
-
-.detail-name{font-size:18px;font-weight:750}
-.detail-type{margin-top:7px;color:rgba(255,255,255,.65);font-size:12px}
-.detail-amount{margin-top:17px;font-size:30px;font-weight:850}
-.detail-amount.in{color:#8df2c2}
-.detail-amount.out{color:#ffb3a6}
-
-.detail-info{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-bottom:20px;
-}
-
-.info-box{
-  padding:14px;
-  border-radius:13px;
-  background:rgba(255,255,255,.12);
-  border:1px solid rgba(255,255,255,.15);
-}
-
-.info-label{color:rgba(255,255,255,.6);font-size:11px}
-.info-value{margin-top:7px;font-size:16px;font-weight:750}
-
-.history-title{
-  margin:20px 0 12px;
-  font-size:14px;
-  font-weight:750;
-}
-
-.history-list{
-  display:flex;
-  flex-direction:column;
-  gap:9px;
-  margin-bottom:20px;
-}
-
-.history-item{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:13px;
-  border-radius:12px;
-  background:rgba(255,255,255,.11);
-  border:1px solid rgba(255,255,255,.12);
-  font-size:13px;
-}
-
-.history-date{
-  color:rgba(255,255,255,.55);
-  font-size:11px;
-  margin-top:5px;
-}
-
-.history-money{font-weight:750}
-.history-money.repay{color:#8df2c2}
-.history-money.increase{color:#b9caff}
-
-.action-area{
-  padding-top:17px;
-  margin-top:15px;
-  border-top:1px solid rgba(255,255,255,.15);
-}
-
-.action-title{
-  margin-bottom:12px;
-  font-size:14px;
-  font-weight:750;
-}
-
-.action-input{
-  display:flex;
-  gap:9px;
-  margin-bottom:12px;
-}
-
-.action-input input{
-  min-width:0;
-  flex:1;
-  height:47px;
-  padding:0 13px;
-  border:1px solid rgba(255,255,255,.2);
-  border-radius:12px;
-  background:rgba(255,255,255,.12);
-  color:#fff;
-  font-size:15px;
-}
-
-.action-btn{
-  padding:0 15px;
-  border-radius:12px;
-  color:white;
-  font-size:13px;
-  font-weight:700;
-  white-space:nowrap;
-}
-
-.repay-btn{background:rgba(32,167,121,.85)}
-.increase-btn{background:rgba(76,111,204,.9)}
-
-.settled-note{
-  padding:14px;
-  border-radius:12px;
-  background:rgba(56,200,139,.18);
-  color:#9af2c8;
-  text-align:center;
-  font-size:13px;
-}
-
-@media(min-width:650px){
-  .modal{align-items:center}
-  .modal-card{border-radius:24px;max-height:85dvh}
-}
+.primary-btn span{font-size:20px;margin-right:7px;vertical-align:-1px}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:25px}
+.filter-btn{padding:13px 8px;border-radius:15px;font-size:14px;font-weight:750;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px)}
+.filter-btn.active{background:linear-gradient(135deg,rgba(169,124,255,.88),rgba(113,83,226,.88));border-color:rgba(255,255,255,.4);box-shadow:0 5px 18px rgba(105,73,205,.25)}
+.section-title{font-size:17px;font-weight:800;margin:0 0 14px 3px;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+.bill-list{display:flex;flex-direction:column;gap:11px}
+.bill-card{padding:16px;border-radius:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:transform .15s}
+.bill-card:active{transform:scale(.985)}
+.bill-info{min-width:0;flex:1}
+.bill-name{font-size:15px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bill-type{font-size:12px;color:rgba(255,255,255,.68);margin-top:6px}
+.bill-right{text-align:right;flex-shrink:0}
+.bill-amount{font-size:18px;font-weight:850;font-variant-numeric:tabular-nums}
+.bill-status{font-size:11px;margin-top:5px;color:#b9f5cf}
+.bill-status.done{color:#c9c3d5}
+.empty{padding:38px 15px;text-align:center;color:rgba(255,255,255,.65);font-size:13px;border-radius:18px}
+.modal{position:fixed;inset:0;z-index:10;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.52);padding:15px;padding-bottom:calc(env(safe-area-inset-bottom) + 15px)}
+.modal.show{display:flex}
+.modal-card{width:100%;max-width:560px;max-height:88dvh;overflow-y:auto;border-radius:25px;padding:22px 19px;background:rgba(31,25,48,.91);border:1px solid rgba(255,255,255,.2);box-shadow:0 15px 50px rgba(0,0,0,.35);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-title{font-size:18px;font-weight:850}
+.close-btn{width:31px;height:31px;border-radius:50%;background:rgba(255,255,255,.13);font-size:20px}
+.field{margin:15px 0}
+.field label{display:block;font-size:13px;color:rgba(255,255,255,.72);margin-bottom:9px}
+.field input{width:100%;height:47px;border-radius:13px;padding:0 13px;color:#fff;outline:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);font-size:15px}
+.field input::placeholder{color:rgba(255,255,255,.4)}
+.type-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.type-option{padding:12px 7px;border-radius:13px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);font-size:13px;font-weight:700}
+.type-option.active{background:rgba(153,112,255,.45);border-color:#bda1ff}
+.action-btn{width:100%;padding:14px;border-radius:14px;background:linear-gradient(135deg,#a879ff,#7654e8);font-size:15px;font-weight:800;margin-top:12px}
+.secondary-btn{width:100%;padding:13px;border-radius:14px;background:rgba(255,255,255,.12);font-size:14px;font-weight:750;margin-top:10px;border:1px solid rgba(255,255,255,.16)}
+.detail-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.summary-cell{padding:12px 8px;border-radius:13px;text-align:center;background:rgba(255,255,255,.09)}
+.summary-label{font-size:11px;color:rgba(255,255,255,.62);margin-bottom:8px}
+.summary-value{font-size:15px;font-weight:850;overflow-wrap:anywhere}
+.detail-name{font-size:19px;font-weight:850;margin-bottom:16px}
+.history-title{font-size:14px;font-weight:800;margin:20px 0 11px}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:12px 2px;border-bottom:1px solid rgba(255,255,255,.1);font-size:13px;gap:10px}
+.history-type{color:rgba(255,255,255,.72)}
+.history-date{font-size:11px;color:rgba(255,255,255,.48);margin-top:5px}
+.history-amount{font-weight:800;white-space:nowrap}
+.history-amount.repay{color:#8ff0b2}
+.history-amount.increase{color:#8ecaff}
+.no-history{font-size:12px;color:rgba(255,255,255,.5);padding:12px 0}
+.toast{position:fixed;z-index:30;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%);padding:11px 18px;border-radius:30px;background:rgba(25,20,39,.92);border:1px solid rgba(255,255,255,.2);font-size:13px;display:none;white-space:nowrap}
+.toast.show{display:block}
 </style>
 </head>
 
 <body>
+<div id="wallpaperLayer">
+ <img id="wallpaperImage" alt="">
+ <div id="wallpaperShade"></div>
+</div>
 
 <div class="app">
-
-  <header class="header">
-    <div>
-      <h1>欠账记账</h1>
-      <div class="header-sub">清晰记录每一笔往来</div>
-    </div>
-
-    <div class="wallpaper-actions">
-      <button class="wallpaper-btn" id="wallpaperBtn">更换壁纸</button>
-      <button class="reset-wallpaper-btn" id="resetWallpaper">恢复默认</button>
-    </div>
-  </header>
-
-  <input
-    id="wallpaperInput"
-    type="file"
-    accept="image/*"
-    hidden
-  >
-
-  <div class="section-title">
-    <h2>账单记录</h2>
-    <button class="add-btn" id="openAdd">＋ 添加账单</button>
+ <header class="header">
+  <div class="brand">
+   <div class="coin">🪙</div>
+   <div class="brand-title">昵称 账本</div>
   </div>
+  <button class="wallpaper-btn" id="chooseWallpaper" aria-label="更换壁纸">＋</button>
+  <input id="wallpaperInput" type="file" accept="image/*">
+ </header>
 
-  <div class="filters" id="filters">
-    <button class="filter-btn active" data-filter="in">别人欠我</button>
-    <button class="filter-btn" data-filter="out">我欠别人</button>
-  </div>
+ <div class="add-area">
+  <button class="primary-btn" id="openAdd"><span>＋</span>添加账单</button>
+ </div>
 
-  <div class="bill-list" id="billList"></div>
+ <div class="filters">
+  <button class="filter-btn" data-filter="out">我欠别人</button>
+  <button class="filter-btn active" data-filter="in">别人欠我</button>
+ </div>
 
+ <h2 class="section-title">账单记录</h2>
+ <div class="bill-list" id="billList"></div>
 </div>
 
 <!-- 添加账单 -->
 <div class="modal" id="addModal">
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3>添加账单</h3>
-      <button class="close-btn" data-close="addModal">×</button>
-    </div>
-
-    <div class="form-group">
-      <label>账单类型</label>
-      <div class="type-options" id="typeOptions">
-        <button class="type-option active" data-type="in">别人欠我的</button>
-        <button class="type-option" data-type="out">我欠别人的</button>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>姓名 / 备注</label>
-      <input id="billName" type="text" placeholder="请输入姓名或备注" maxlength="40">
-    </div>
-
-    <div class="form-group">
-      <label>金额（元）</label>
-      <input id="billAmount" type="number" inputmode="decimal" placeholder="请输入金额">
-    </div>
-
-    <button class="primary-btn" id="saveBill">保存账单</button>
+ <div class="modal-card">
+  <div class="modal-head">
+   <div class="modal-title">添加账单</div>
+   <button class="close-btn" data-close="addModal">×</button>
   </div>
+  <div class="field">
+   <label>账单类型</label>
+   <div class="type-options" id="typeOptions">
+    <button class="type-option" data-type="out">我欠别人</button>
+    <button class="type-option active" data-type="in">别人欠我</button>
+   </div>
+  </div>
+  <div class="field">
+   <label>姓名 / 备注</label>
+   <input id="billName" type="text" maxlength="40" placeholder="请输入姓名或备注">
+  </div>
+  <div class="field">
+   <label>金额（元）</label>
+   <input id="billAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="请输入金额">
+  </div>
+  <button class="action-btn" id="saveBill">保存账单</button>
+ </div>
 </div>
 
 <!-- 账单详情 -->
 <div class="modal" id="detailModal">
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3>账单详情</h3>
-      <button class="close-btn" data-close="detailModal">×</button>
-    </div>
-    <div id="detailContent"></div>
+ <div class="modal-card">
+  <div class="modal-head">
+   <div class="modal-title">账单详情</div>
+   <button class="close-btn" data-close="detailModal">×</button>
   </div>
+  <div id="detailContent"></div>
+ </div>
 </div>
 
+<!-- 增加金额 -->
+<div class="modal" id="increaseModal">
+ <div class="modal-card">
+  <div class="modal-head">
+   <div class="modal-title">增加金额</div>
+   <button class="close-btn" data-close="increaseModal">×</button>
+  </div>
+  <div class="field">
+   <label>本次增加金额（元）</label>
+   <input id="increaseAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="请输入增加金额">
+  </div>
+  <button class="action-btn" id="confirmIncrease">确认增加</button>
+ </div>
+</div>
+
+<!-- 还款 / 收款 -->
+<div class="modal" id="repayModal">
+ <div class="modal-card">
+  <div class="modal-head">
+   <div class="modal-title" id="repayTitle">还款记录</div>
+   <button class="close-btn" data-close="repayModal">×</button>
+  </div>
+  <div class="field">
+   <label id="repayLabel">本次还款金额（元）</label>
+   <input id="repayAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="请输入金额">
+  </div>
+  <button class="action-btn" id="confirmRepay">确认</button>
+ </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-const STORAGE_KEY='debt-tracker-v1';
+const BILL_KEY = 'debt-tracker-v1';
+let bills = [];
+let currentFilter = 'in';
+let selectedType = 'in';
+let currentBillId = null;
+let wallpaperURL = null;
 
-const DB_NAME='debt-tracker-wallpaper';
-const DB_STORE='settings';
+const $ = id => document.getElementById(id);
+const money = n => Number(n || 0).toFixed(2);
+const nowText = () => new Date().toLocaleString('zh-CN',{hour12:false});
 
-const $=selector=>document.querySelector(selector);
-
-let records=[];
-let currentFilter='in';
-let selectedType='in';
-let currentId=null;
-let wallpaperURL=null;
-let wallpaperDB=null;
-
-/* IndexedDB：专门保存壁纸，不占用账单存储空间 */
-
-function openWallpaperDB(){
-  return new Promise((resolve,reject)=>{
-    if(!('indexedDB' in window)){
-      reject(new Error('当前浏览器不支持本地壁纸保存'));
-      return;
-    }
-
-    const request=indexedDB.open(DB_NAME,1);
-
-    request.onupgradeneeded=()=>{
-      const db=request.result;
-      if(!db.objectStoreNames.contains(DB_STORE)){
-        db.createObjectStore(DB_STORE);
-      }
-    };
-
-    request.onsuccess=()=>resolve(request.result);
-    request.onerror=()=>reject(request.error);
-  });
+function toast(message){
+ const el=$('toast');
+ el.textContent=message;
+ el.classList.add('show');
+ clearTimeout(toast.timer);
+ toast.timer=setTimeout(()=>el.classList.remove('show'),1900);
 }
 
-function saveWallpaper(blob){
-  return new Promise((resolve,reject)=>{
-    if(!wallpaperDB){
-      reject(new Error('壁纸存储尚未准备好'));
-      return;
-    }
+function openModal(id){$(id).classList.add('show')}
+function closeModal(id){$(id).classList.remove('show')}
 
-    const tx=wallpaperDB.transaction(DB_STORE,'readwrite');
-    tx.objectStore(DB_STORE).put(blob,'background');
-
-    tx.oncomplete=()=>resolve();
-    tx.onerror=()=>reject(tx.error);
-    tx.onabort=()=>reject(tx.error);
-  });
-}
-
-function readWallpaper(){
-  return new Promise((resolve,reject)=>{
-    if(!wallpaperDB){
-      reject(new Error('壁纸存储尚未准备好'));
-      return;
-    }
-
-    const tx=wallpaperDB.transaction(DB_STORE,'readonly');
-    const request=tx.objectStore(DB_STORE).get('background');
-
-    request.onsuccess=()=>resolve(request.result||null);
-    request.onerror=()=>reject(request.error);
-  });
-}
-
-function deleteWallpaper(){
-  return new Promise((resolve,reject)=>{
-    if(!wallpaperDB){
-      reject(new Error('壁纸存储尚未准备好'));
-      return;
-    }
-
-    const tx=wallpaperDB.transaction(DB_STORE,'readwrite');
-    tx.objectStore(DB_STORE).delete('background');
-
-    tx.oncomplete=()=>resolve();
-    tx.onerror=()=>reject(tx.error);
-  });
-}
-
-function applyWallpaper(blob){
-  if(wallpaperURL){
-    URL.revokeObjectURL(wallpaperURL);
-    wallpaperURL=null;
-  }
-
-  if(!blob){
-    document.documentElement.style.setProperty('--wallpaper','none');
-    return;
-  }
-
-  wallpaperURL=URL.createObjectURL(blob);
-
-  const safeURL=wallpaperURL.replace(/["\\]/g,'');
-  document.documentElement.style.setProperty(
-    '--wallpaper',
-    `url("${safeURL}")`
-  );
-}
-
-async function initWallpaper(){
-  try{
-    wallpaperDB=await openWallpaperDB();
-    const blob=await readWallpaper();
-    if(blob)applyWallpaper(blob);
-  }catch(error){
-    console.error('壁纸读取失败：',error);
-  }
-}
-
-/* 选择并保存壁纸 */
-
-$('#wallpaperBtn').addEventListener('click',()=>{
-  $('#wallpaperInput').click();
+document.querySelectorAll('[data-close]').forEach(btn=>{
+ btn.addEventListener('click',()=>closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal').forEach(modal=>{
+ modal.addEventListener('click',e=>{
+  if(e.target===modal)modal.classList.remove('show');
+ });
 });
 
-$('#wallpaperInput').addEventListener('change',async e=>{
-  const file=e.target.files?.[0];
-  if(!file)return;
-
-  if(!file.type.startsWith('image/')){
-    alert('请选择图片文件');
-    e.target.value='';
-    return;
-  }
-
-  if(file.size>20*1024*1024){
-    alert('图片太大，请选择20MB以内的图片');
-    e.target.value='';
-    return;
-  }
-
-  try{
-    let blob=file;
-
-    // 尝试压缩大图片，降低手机存储占用
-    if('createImageBitmap' in window){
-      try{
-        const bitmap=await createImageBitmap(file);
-        const maxWidth=1800;
-        const scale=Math.min(1,maxWidth/bitmap.width);
-        const canvas=document.createElement('canvas');
-
-        canvas.width=Math.round(bitmap.width*scale);
-        canvas.height=Math.round(bitmap.height*scale);
-
-        const ctx=canvas.getContext('2d');
-        ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
-        bitmap.close();
-
-        blob=await new Promise(resolve=>{
-          canvas.toBlob(result=>resolve(result||file),'image/jpeg',.86);
-        });
-      }catch(error){
-        blob=file;
-      }
-    }
-
-    await saveWallpaper(blob);
-    applyWallpaper(blob);
-    alert('壁纸已保存！');
-  }catch(error){
-    console.error(error);
-    alert('壁纸保存失败，请检查浏览器存储权限或更换图片');
-  }
-
-  e.target.value='';
-});
-
-/* 恢复默认壁纸 */
-
-$('#resetWallpaper').addEventListener('click',async()=>{
-  if(!confirm('确定恢复默认背景吗？'))return;
-
-  try{
-    await deleteWallpaper();
-    applyWallpaper(null);
-    alert('已恢复默认背景');
-  }catch(error){
-    alert('恢复失败，请稍后重试');
-  }
-});
-
-/* 金额和账单 */
-
-function money(value){
-  return Math.round((Number(value)||0)*100)/100;
-}
-
-function formatMoney(value){
-  return '¥'+money(value).toFixed(2);
-}
-
-function escapeHTML(value){
-  return String(value??'').replace(/[&<>"']/g,char=>({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#39;'
-  })[char]);
-}
-
-function save(){
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(records));
+/* 账单数据 */
+function normalizeBill(item,index){
+ const original = Number(item.originalAmount ?? item.totalAmount ?? item.amount ?? item.money ?? 0);
+ const paid = Number(item.paidAmount ?? item.repaidAmount ?? item.paid ?? 0);
+ const amount = Number(item.amount ?? Math.max(0,original-paid));
+ return {
+  id:item.id ?? ('bill-'+Date.now()+'-'+index),
+  type:item.type==='out'?'out':'in',
+  name:item.name ?? item.title ?? item.remark ?? '未命名账单',
+  originalAmount:Math.max(original,amount+paid),
+  paidAmount:paid,
+  amount:Math.max(0,amount),
+  history:Array.isArray(item.history)?item.history:[],
+  createdAt:item.createdAt ?? item.date ?? nowText()
+ };
 }
 
 function load(){
-  try{
-    const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-    records=Array.isArray(data)?data:[];
-  }catch{
-    records=[];
-  }
-
-  records.forEach(r=>{
-    if(r.originalAmount==null)r.originalAmount=r.amount;
-    if(r.paidAmount==null)r.paidAmount=money(r.originalAmount-r.amount);
-    if(!Array.isArray(r.history))r.history=[];
-
-    r.originalAmount=money(r.originalAmount);
-    r.paidAmount=money(r.paidAmount);
-    r.amount=Math.max(0,money(r.originalAmount-r.paidAmount));
-    r.settled=Boolean(r.settled)||r.amount<=0;
-  });
-
-  save();
+ try{
+  const raw=localStorage.getItem(BILL_KEY);
+  const data=raw?JSON.parse(raw):[];
+  bills=Array.isArray(data)?data.map(normalizeBill):[];
+ }catch(e){
+  bills=[];
+ }
+}
+function save(){
+ localStorage.setItem(BILL_KEY,JSON.stringify(bills));
 }
 
 function renderList(){
-  const list=$('#billList');
-
-  const filtered=records
-    .filter(r=>r.type===currentFilter)
-    .sort((a,b)=>Number(b.createdAt)-Number(a.createdAt));
-
-  if(!filtered.length){
-    list.innerHTML='<div class="empty">暂无账单记录</div>';
-    return;
-  }
-
-  list.innerHTML=filtered.map(r=>`
-    <div class="bill-item" data-id="${escapeHTML(r.id)}">
-      <div class="bill-left">
-        <div class="bill-name">${escapeHTML(r.name)}</div>
-        <div class="bill-meta">
-          ${r.type==='in'?'别人欠我的':'我欠别人的'} · ${escapeHTML(r.date||'')}
-        </div>
-      </div>
-
-      <div class="bill-right">
-        <div class="bill-amount ${r.type}">${formatMoney(r.amount)}</div>
-        <div class="bill-status ${r.settled?'settled':''}">
-          ${r.settled?'已结清':'待还款'}
-        </div>
-      </div>
-    </div>
-  `).join('');
+ const list=$('billList');
+ const filtered=bills.filter(b=>b.type===currentFilter);
+ list.innerHTML='';
+ document.querySelectorAll('.filter-btn').forEach(btn=>{
+  btn.classList.toggle('active',btn.dataset.filter===currentFilter);
+ });
+ if(!filtered.length){
+  list.innerHTML='<div class="empty glass">暂时没有账单记录</div>';
+  return;
+ }
+ filtered.slice().reverse().forEach(b=>{
+  const done=b.amount<=0;
+  const card=document.createElement('div');
+  card.className='bill-card glass';
+  card.innerHTML=`
+   <div class="bill-info">
+    <div class="bill-name"></div>
+    <div class="bill-type">${b.type==='in'?'别人欠我':'我欠别人'}</div>
+   </div>
+   <div class="bill-right">
+    <div class="bill-amount">¥${money(b.amount)}</div>
+    <div class="bill-status ${done?'done':''}">${done?'已结清':'剩余金额'}</div>
+   </div>`;
+  card.querySelector('.bill-name').textContent=b.name;
+  card.addEventListener('click',()=>openDetail(b.id));
+  list.appendChild(card);
+ });
 }
 
-function showModal(id){
-  $('#'+id).classList.add('show');
-}
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+ btn.addEventListener('click',()=>{
+  currentFilter=btn.dataset.filter;
+  renderList();
+ });
+});
 
-function closeModal(id){
-  $('#'+id).classList.remove('show');
+/* 添加账单 */
+function chooseType(type){
+ selectedType=type;
+ document.querySelectorAll('.type-option').forEach(btn=>{
+  btn.classList.toggle('active',btn.dataset.type===type);
+ });
 }
+document.querySelectorAll('.type-option').forEach(btn=>{
+ btn.addEventListener('click',()=>chooseType(btn.dataset.type));
+});
 
+$('openAdd').addEventListener('click',()=>{
+ chooseType(currentFilter);
+ $('billName').value='';
+ $('billAmount').value='';
+ openModal('addModal');
+});
+
+$('saveBill').addEventListener('click',()=>{
+ const name=$('billName').value.trim();
+ const amount=Number($('billAmount').value);
+ if(!name){toast('请输入姓名或备注');return}
+ if(!Number.isFinite(amount)||amount<=0){toast('请输入正确金额');return}
+ const bill={
+  id:'bill-'+Date.now()+'-'+Math.random().toString(16).slice(2,7),
+  type:selectedType,
+  name,
+  originalAmount:amount,
+  paidAmount:0,
+  amount,
+  history:[],
+  createdAt:nowText()
+ };
+ bills.push(bill);
+ save();
+ renderList();
+ closeModal('addModal');
+ toast('账单已添加');
+});
+
+/* 账单详情 */
+function getBill(id){return bills.find(b=>String(b.id)===String(id))}
 function openDetail(id){
-  const r=records.find(item=>String(item.id)===String(id));
-  if(!r)return;
+ currentBillId=id;
+ renderDetail();
+ openModal('detailModal');
+}
 
-  currentId=id;
-
-  const historyHTML=r.history.length
-    ?[...r.history].reverse().map(item=>{
-      const isIncrease=item.type==='increase';
-
-      return `
-        <div class="history-item">
-          <div>
-            <div>${isIncrease?'增加金额':'还款记录'}</div>
-            <div class="history-date">${escapeHTML(item.date||'')}</div>
-          </div>
-          <div class="history-money ${isIncrease?'increase':'repay'}">
-            ${isIncrease?'+':'−'}${formatMoney(item.amount)}
-          </div>
-        </div>
-      `;
-    }).join('')
-    :'<div class="empty" style="padding:20px">暂无变动记录</div>';
-
-  $('#detailContent').innerHTML=`
-    <div class="detail-top">
-      <div class="detail-name">${escapeHTML(r.name)}</div>
-      <div class="detail-type">${r.type==='in'?'别人欠我的':'我欠别人的'}</div>
-      <div class="detail-amount ${r.type}">${formatMoney(r.amount)}</div>
-      <div class="detail-type">${r.settled?'已全部结清':'当前剩余金额'}</div>
+function renderDetail(){
+ const b=getBill(currentBillId);
+ if(!b){closeModal('detailModal');return}
+ const done=b.amount<=0;
+ const history=b.history.slice().reverse();
+ let historyHTML='';
+ if(history.length){
+  historyHTML=history.map(h=>{
+   const isIncrease=h.type==='increase';
+   return `<div class="history-item">
+    <div>
+     <div class="history-type">${isIncrease?'增加金额':'还款记录'}</div>
+     <div class="history-date">${escapeHTML(h.date||'')}</div>
     </div>
+    <div class="history-amount ${isIncrease?'increase':'repay'}">${isIncrease?'+':'−'}¥${money(h.amount)}</div>
+   </div>`;
+  }).join('');
+ }else{
+  historyHTML='<div class="no-history">暂无操作记录</div>';
+ }
+ $('detailContent').innerHTML=`
+  <div class="detail-name">${escapeHTML(b.name)}</div>
+  <div class="detail-summary">
+   <div class="summary-cell"><div class="summary-label">累计账单</div><div class="summary-value">¥${money(b.originalAmount)}</div></div>
+   <div class="summary-cell"><div class="summary-label">累计已还</div><div class="summary-value">¥${money(b.paidAmount)}</div></div>
+   <div class="summary-cell"><div class="summary-label">剩余金额</div><div class="summary-value">¥${money(b.amount)}</div></div>
+  </div>
+  <div class="summary-cell" style="text-align:left;margin-bottom:13px">
+   <div class="summary-label">账单类型</div>
+   <div style="font-size:13px;font-weight:750">${b.type==='in'?'别人欠我':'我欠别人'}</div>
+  </div>
+  <button class="action-btn" id="detailIncrease">＋ 增加金额</button>
+  ${done?'':'<button class="secondary-btn" id="detailRepay">'+(b.type==='in'?'确认收款':'记录还款')+'</button>'}
+  <div class="history-title">账单操作记录</div>
+  ${historyHTML}`;
+ $('detailIncrease').addEventListener('click',()=>{
+  $('increaseAmount').value='';
+  closeModal('detailModal');
+  openModal('increaseModal');
+ });
+ const repayBtn=$('detailRepay');
+ if(repayBtn)repayBtn.addEventListener('click',()=>{
+  $('repayAmount').value='';
+  $('repayTitle').textContent=b.type==='in'?'收款记录':'还款记录';
+  $('repayLabel').textContent=b.type==='in'?'本次收款金额（元）':'本次还款金额（元）';
+  closeModal('detailModal');
+  openModal('repayModal');
+ });
+}
 
-    <div class="detail-info">
-      <div class="info-box">
-        <div class="info-label">累计账单金额</div>
-        <div class="info-value">${formatMoney(r.originalAmount)}</div>
-      </div>
-
-      <div class="info-box">
-        <div class="info-label">累计已还金额</div>
-        <div class="info-value">${formatMoney(r.paidAmount)}</div>
-      </div>
-    </div>
-
-    <div class="history-title">金额变动记录</div>
-    <div class="history-list">${historyHTML}</div>
-
-    <div class="action-area">
-      <div class="action-title">增加金额</div>
-      <div class="action-input">
-        <input id="increaseAmount" type="number" inputmode="decimal" placeholder="输入需要增加的金额">
-        <button class="action-btn increase-btn" id="increaseBtn">确认增加</button>
-      </div>
-    </div>
-
-    ${r.settled?'':`
-      <div class="action-area">
-        <div class="action-title">${r.type==='in'?'记录对方还款':'记录我的还款'}</div>
-        <div class="action-input">
-          <input id="repayAmount" type="number" inputmode="decimal" placeholder="输入本次还款金额">
-          <button class="action-btn repay-btn" id="repayBtn">确认还款</button>
-        </div>
-      </div>
-    `}
-
-    ${r.settled?'<div class="settled-note">这笔账单已经全部结清</div>':''}
-  `;
-
-  showModal('detailModal');
+function escapeHTML(str){
+ return String(str).replace(/[&<>"']/g,c=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+ }[c]));
 }
 
 /* 增加金额 */
+function increaseBillAmount(id,amount){
+ const b=getBill(id);
+ if(!b)return false;
+ b.originalAmount=Number(b.originalAmount||0)+amount;
+ b.amount=Number(b.amount||0)+amount;
+ b.history.push({type:'increase',amount,date:nowText()});
+ save();
+ renderList();
+ return true;
+}
+$('confirmIncrease').addEventListener('click',()=>{
+ const amount=Number($('increaseAmount').value);
+ if(!Number.isFinite(amount)||amount<=0){toast('请输入正确金额');return}
+ if(!increaseBillAmount(currentBillId,amount))return;
+ closeModal('increaseModal');
+ renderDetail();
+ openModal('detailModal');
+ toast('金额已增加');
+});
 
-function increaseBillAmount(){
-  const r=records.find(item=>String(item.id)===String(currentId));
-  if(!r)return;
+/* 部分还款 / 收款 */
+function makeRepayment(id,amount){
+ const b=getBill(id);
+ if(!b||b.amount<=0)return false;
+ if(amount>b.amount+0.000001)return false;
+ b.paidAmount=Number(b.paidAmount||0)+amount;
+ b.amount=Math.max(0,Number(b.originalAmount||0)-b.paidAmount);
+ if(b.amount<0.005)b.amount=0;
+ b.history.push({type:'repay',amount,date:nowText()});
+ save();
+ renderList();
+ return true;
+}
+$('confirmRepay').addEventListener('click',()=>{
+ const b=getBill(currentBillId);
+ if(!b)return;
+ const amount=Number($('repayAmount').value);
+ if(!Number.isFinite(amount)||amount<=0){toast('请输入正确金额');return}
+ if(amount>b.amount+0.000001){toast('金额不能超过剩余金额');return}
+ if(!makeRepayment(currentBillId,amount))return;
+ closeModal('repayModal');
+ renderDetail();
+ openModal('detailModal');
+ toast(b.type==='in'?'收款已记录':'还款已记录');
+});
 
-  const amount=money($('#increaseAmount')?.value);
+/* 壁纸：IndexedDB 本地保存 */
+const WALL_DB='debt-tracker-wallpaper';
+const WALL_STORE='settings';
 
-  if(!amount||amount<=0){
-    alert('请输入正确的增加金额');
-    return;
-  }
-
-  r.originalAmount=money(r.originalAmount+amount);
-  r.amount=money(r.amount+amount);
-  r.settled=false;
-
-  r.history.push({
-    type:'increase',
-    amount,
-    date:new Date().toLocaleString('zh-CN',{hour12:false})
-  });
-
-  save();
-  renderList();
-  openDetail(currentId);
+function openWallpaperDB(){
+ return new Promise((resolve,reject)=>{
+  const request=indexedDB.open(WALL_DB,1);
+  request.onupgradeneeded=()=>{
+   const db=request.result;
+   if(!db.objectStoreNames.contains(WALL_STORE)){
+    db.createObjectStore(WALL_STORE);
+   }
+  };
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ });
 }
 
-/* 记录还款 */
-
-function makeRepayment(){
-  const r=records.find(item=>String(item.id)===String(currentId));
-  if(!r||r.settled)return;
-
-  const amount=money($('#repayAmount')?.value);
-
-  if(!amount||amount<=0){
-    alert('请输入正确的还款金额');
-    return;
-  }
-
-  if(amount>r.amount){
-    alert('还款金额不能大于剩余金额');
-    return;
-  }
-
-  r.paidAmount=money(r.paidAmount+amount);
-  r.amount=Math.max(0,money(r.originalAmount-r.paidAmount));
-
-  r.history.push({
-    type:'repay',
-    amount,
-    date:new Date().toLocaleString('zh-CN',{hour12:false})
-  });
-
-  if(r.amount<=0.001){
-    r.amount=0;
-    r.paidAmount=r.originalAmount;
-    r.settled=true;
-  }
-
-  save();
-  renderList();
-  openDetail(currentId);
+async function saveWallpaper(blob){
+ const db=await openWallpaperDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(WALL_STORE,'readwrite');
+  tx.objectStore(WALL_STORE).put(blob,'background');
+  tx.oncomplete=()=>{db.close();resolve()};
+  tx.onerror=()=>{db.close();reject(tx.error)};
+ });
 }
 
-/* 添加账单 */
-
-function updateTypeButtons(){
-  document.querySelectorAll('.type-option').forEach(btn=>{
-    btn.classList.toggle('active',btn.dataset.type===selectedType);
-  });
+async function readWallpaper(){
+ const db=await openWallpaperDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(WALL_STORE,'readonly');
+  const request=tx.objectStore(WALL_STORE).get('background');
+  request.onsuccess=()=>{db.close();resolve(request.result||null)};
+  request.onerror=()=>{db.close();reject(request.error)};
+ });
 }
 
-$('#openAdd').addEventListener('click',()=>{
-  $('#billName').value='';
-  $('#billAmount').value='';
-  selectedType=currentFilter;
-  updateTypeButtons();
-  showModal('addModal');
+function applyWallpaper(blob){
+ if(wallpaperURL)URL.revokeObjectURL(wallpaperURL);
+ wallpaperURL=URL.createObjectURL(blob);
+ $('wallpaperImage').src=wallpaperURL;
+ $('wallpaperImage').style.display='block';
+}
+
+async function compressImage(file){
+ if(file.size>20*1024*1024)throw new Error('图片不能超过20MB');
+ if(!window.createImageBitmap)return file;
+ const bitmap=await createImageBitmap(file);
+ const max=1800;
+ const scale=Math.min(1,max/Math.max(bitmap.width,bitmap.height));
+ const canvas=document.createElement('canvas');
+ canvas.width=Math.round(bitmap.width*scale);
+ canvas.height=Math.round(bitmap.height*scale);
+ const ctx=canvas.getContext('2d');
+ ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+ bitmap.close?.();
+ return await new Promise(resolve=>{
+  canvas.toBlob(blob=>resolve(blob||file),'image/jpeg',.86);
+ });
+}
+
+$('chooseWallpaper').addEventListener('click',()=>$('wallpaperInput').click());
+$('wallpaperInput').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];
+ if(!file)return;
+ if(!file.type.startsWith('image/')){toast('请选择图片文件');return}
+ try{
+  const compressed=await compressImage(file);
+  await saveWallpaper(compressed);
+  applyWallpaper(compressed);
+  toast('壁纸更换成功');
+ }catch(err){
+  console.error(err);
+  toast(err.message||'壁纸保存失败');
+ }
+ e.target.value='';
 });
 
-$('#typeOptions').addEventListener('click',e=>{
-  const btn=e.target.closest('.type-option');
-  if(!btn)return;
+async function initWallpaper(){
+ try{
+  const blob=await readWallpaper();
+  if(blob)applyWallpaper(blob);
+ }catch(err){console.error('读取壁纸失败',err)}
+}
 
-  selectedType=btn.dataset.type;
-  updateTypeButtons();
-});
+/* 禁止双击缩放 */
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gestureend',e=>e.preventDefault(),{passive:false});
+let lastTouchEnd=0;
+document.addEventListener('touchend',e=>{
+ const now=Date.now();
+ if(now-lastTouchEnd<=300)e.preventDefault();
+ lastTouchEnd=now;
+},{passive:false});
 
-$('#saveBill').addEventListener('click',()=>{
-  const name=$('#billName').value.trim();
-  const amount=money($('#billAmount').value);
-
-  if(!name){
-    alert('请输入姓名或备注');
-    return;
-  }
-
-  if(!amount||amount<=0){
-    alert('请输入正确的金额');
-    return;
-  }
-
-  const now=new Date();
-
-  records.push({
-    id:String(Date.now())+Math.random().toString(16).slice(2,6),
-    type:selectedType,
-    name,
-    amount,
-    originalAmount:amount,
-    paidAmount:0,
-    history:[],
-    settled:false,
-    createdAt:Date.now(),
-    date:now.toLocaleDateString('zh-CN')
-  });
-
-  currentFilter=selectedType;
-
-  document.querySelectorAll('.filter-btn').forEach(btn=>{
-    btn.classList.toggle('active',btn.dataset.filter===currentFilter);
-  });
-
-  save();
-  renderList();
-  closeModal('addModal');
-});
-
-/* 列表点击 */
-
-$('#billList').addEventListener('click',e=>{
-  const item=e.target.closest('.bill-item');
-  if(!item)return;
-  openDetail(item.dataset.id);
-});
-
-/* 详情操作 */
-
-$('#detailContent').addEventListener('click',e=>{
-  if(e.target.closest('#repayBtn')){
-    makeRepayment();
-  }
-
-  if(e.target.closest('#increaseBtn')){
-    increaseBillAmount();
-  }
-});
-
-/* 分类切换 */
-
-$('#filters').addEventListener('click',e=>{
-  const btn=e.target.closest('.filter-btn');
-  if(!btn)return;
-
-  currentFilter=btn.dataset.filter;
-
-  document.querySelectorAll('.filter-btn').forEach(item=>{
-    item.classList.toggle('active',item===btn);
-  });
-
-  renderList();
-});
-
-/* 关闭弹窗 */
-
-document.addEventListener('click',e=>{
-  const close=e.target.closest('[data-close]');
-  if(close)closeModal(close.dataset.close);
-
-  if(e.target.classList.contains('modal')){
-    e.target.classList.remove('show');
-  }
-});
-
-/* iPhone 手势缩放限制 */
-
-document.addEventListener('gesturestart',e=>e.preventDefault());
-document.addEventListener('gesturechange',e=>e.preventDefault());
-document.addEventListener('gestureend',e=>e.preventDefault());
-
-/* 启动 */
-
+/* 初始化 */
 load();
 renderList();
 initWallpaper();
 </script>
-
 </body>
 </html>
