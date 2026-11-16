@@ -1245,9 +1245,9 @@ function renderDetail(){
    <div class="bill-type-tag" style="margin-top:0;font-size:12px;padding:4px 12px">${b.type==='in'?'借款':'欠款'}</div>
   </div>
 
-  <button class="action-btn" id="detailIncrease">＋ 增加金额</button>
+  <button class="action-btn" id="detailIncrease">增加金额</button>
 
-  ${done?'':'<button class="secondary-btn" id="detailRepay">'+(b.type==='in'?'确认收款':'记录还款')+'</button>'}
+  ${done?'':'<button class="secondary-btn" id="detailRepay">'+(b.type==='in'?'还款金额':'还款金额')+'</button>'}
 
   <div class="history-title">账单操作记录</div>
   ${historyHTML}`;
