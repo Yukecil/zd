@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>欠账记账</title>
+<style>
+  :root{
+    --bg:#f5f6f8;
+    --surface:#ffffff;
+    --ink:#15171c;
+    --sub:#8b919d;
+    --faint:#b3b8c2;
+    --line:#eceef2;
+    --pos:#16a34a;
+    --neg:#e5484d;
+    --accent:#2f6df6;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding:0 16px 48px;
+  }
+  .app{max-width:600px;margin:0 auto;}
+
+  /* Top bar */
+  .topbar{padding:34px 4px 18px;}
+  .title{margin:0;font-size:22px;font-weight:700;letter-spacing:-.2px;}
+  .subtitle{margin:4px 0 0;font-size:13px;color:var(--sub);}
+
+  /* Two separate summary blocks */
+  .summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .sum-block{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:16px 16px 15px;
+  }
+  .b-label{font-size:12.5px;color:var(--sub);margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:0 0 7px;}
+  .dot.pos{background:var(--pos);}
+  .dot.neg{background:var(--neg);}
+  .card-value{
+    font-size:21px;font-weight:700;letter-spacing:-.4px;
+    font-variant-numeric:tabular-nums;word-break:break-all;line-height:1.15;
+  }
+  .card-value.pos{color:var(--pos);}
+  .card-value.neg{color:var(--neg);}
+
+  /* Ledger card (embedded form + list) */
+  .ledger{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    margin-top:16px;overflow:hidden;
+  }
+
+  /* Embedded form */
+  .embed-form{padding:16px;border-bottom:1px solid var(--line);background:#fcfcfd;}
+  .form-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .fh-label{font-size:12.5px;font-weight:700;color:var(--sub);letter-spacing:.2px;}
+  .edit-tag{
+    font-size:10.5px;font-weight:600;color:var(--accent);background:#eef3ff;
+    padding:2px 8px;border-radius:20px;display:none;
+  }
+  .form-head.editing .edit-tag{display:inline-block;}
+  .form-head.editing .fh-label{color:var(--accent);}
+
+  .type-toggle{display:flex;gap:4px;background:#eef0f3;border-radius:10px;padding:3px;margin-bottom:12px;}
+  .type-btn{
+    flex:1;border:none;background:transparent;border-radius:8px;padding:8px 6px;
+    font-size:13px;font-weight:600;color:var(--sub);cursor:pointer;
+    font-family:inherit;transition:all .18s ease;
+    display:flex;align-items:center;justify-content:center;gap:5px;
+  }
+  .type-btn .arrow{font-size:13px;}
+  .type-btn.active{background:#fff;box-shadow:0 1px 2px rgba(20,25,40,.12);}
+  .type-btn.active[data-type="lend"]{color:var(--pos);}
+  .type-btn.active[data-type="borrow"]{color:var(--neg);}
+
+  .embed-row{display:flex;gap:8px;align-items:center;}
+
+  input{
+    width:100%;border:1px solid transparent;border-radius:9px;padding:10px 11px;
+    font-size:14px;font-family:inherit;color:var(--ink);background:#f2f3f6;
+    transition:background .15s,border-color .15s,box-shadow .15s;
+    min-width:0;
+  }
+  input::placeholder{color:var(--faint);}
+  input:focus{
+    outline:none;background:#fff;border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(47,109,246,.12);
+  }
+  .field-name{flex:1;}
+  .field-amount{flex:0 0 128px;position:relative;}
+  .field-amount span{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--sub);font-weight:600;font-size:13px;pointer-events:none;}
+  .field-amount input{padding-left:24px;}
+
+  .add-btn{
+    flex:0 0 auto;border:none;border-radius:9px;padding:10px 20px;
+    background:var(--ink);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;
+    font-family:inherit;white-space:nowrap;transition:background .15s,transform .1s;
+  }
+  .add-btn:hover{background:#2a2d36;}
+  .add-btn:active{transform:scale(.98);}
+  .btn-cancel{
+    flex:0 0 auto;border:none;border-radius:9px;padding:10px 14px;background:#f2f3f6;
+    color:var(--sub);font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;
+    display:none;transition:background .15s,color .15s;
+  }
+  .btn-cancel:hover{background:#e9ebef;color:var(--ink);}
+  .btn-cancel.show{display:block;}
+
+  /* Filters (two only) */
+  .filters{display:flex;gap:8px;flex-wrap:wrap;padding:14px 16px 4px;}
+  .chip{
+    border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:20px;
+    padding:6px 16px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;
+    transition:all .15s;
+  }
+  .chip:hover{border-color:#d7dbe4;}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  /* List */
+  .list{padding:8px 0 2px;}
+  .item{
+    display:flex;gap:12px;align-items:center;padding:14px 16px;
+    border-bottom:1px solid var(--line);transition:background .12s;
+  }
+  .item:last-child{border-bottom:none;}
+  .item:hover{background:#fafbfc;}
+  .item.settled{opacity:.55;}
+  .item.settled .amount{text-decoration:line-through;}
+  .avatar{
+    width:40px;height:40px;border-radius:11px;flex:0 0 40px;
+    display:flex;align-items:center;justify-content:center;font-weight:600;font-size:16px;
+  }
+  .avatar.green{background:#e9f7ef;color:var(--pos);}
+  .avatar.red{background:#fdecec;color:var(--neg);}
+  .info{flex:1;min-width:0;}
+  .line1{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .name{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;}
+  .badge{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:20px;white-space:nowrap;}
+  .badge.green{background:#e9f7ef;color:var(--pos);}
+  .badge.red{background:#fdecec;color:var(--neg);}
+  .badge.gray{background:#f1f2f5;color:var(--sub);}
+  .right{text-align:right;flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:7px;}
+  .amount{font-size:15.5px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .amount.green{color:var(--pos);}
+  .amount.red{color:var(--neg);}
+  .actions{display:flex;gap:4px;}
+  .mini{
+    border:none;background:transparent;color:#a7adb8;border-radius:7px;
+    padding:4px 7px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;
+    transition:all .15s;
+  }
+  .mini:hover{background:#f1f2f5;color:var(--ink);}
+  .mini.danger:hover{background:#fdecec;color:var(--neg);}
+
+  .empty{text-align:center;padding:44px 20px;color:var(--sub);}
+  .empty .emoji{font-size:34px;margin-bottom:12px;opacity:.85;}
+  .empty .t{font-weight:600;font-size:14px;color:#5a6272;margin-bottom:5px;}
+  .empty .s{font-size:12.5px;line-height:1.6;}
+
+  /* Toast */
+  .toast{
+    position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(16px);
+    background:var(--ink);color:#fff;padding:10px 20px;border-radius:11px;font-size:13px;font-weight:600;
+    box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s;z-index:99;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:520px){
+    body{padding:0 12px 40px;}
+    .topbar{padding:26px 2px 16px;}
+    .card-value{font-size:18px;}
+    .embed-row{flex-wrap:wrap;}
+    .field-name{flex:1 0 100%;}
+    .field-amount{flex:1;}
+    .add-btn{flex:0 0 auto;}
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1 class="title">欠账记账</h1>
+      <p class="subtitle">简单记录每一笔往来 · 数据本地保存</p>
+    </header>
+
+    <!-- 两个独立总计板块 -->
+    <section class="summary">
+      <div class="sum-block">
+        <div class="b-label"><span class="dot pos"></span>别人欠我</div>
+        <div class="card-value pos" id="sumRecv">¥0.00</div>
+      </div>
+      <div class="sum-block">
+        <div class="b-label"><span class="dot neg"></span>我欠别人</div>
+        <div class="card-value neg" id="sumPay">¥0.00</div>
+      </div>
+    </section>
+
+    <!-- 账单卡片：顶部嵌入式录入 + 列表 -->
+    <section class="ledger">
+      <form id="debtForm" class="embed-form">
+        <div class="form-head" id="formTitle">
+          <span class="fh-label">记一笔</span>
+          <span class="edit-tag">编辑中</span>
+        </div>
+
+        <div class="type-toggle">
+          <button type="button" class="type-btn active" data-type="lend"><span class="arrow">↑</span> 别人欠我</button>
+          <button type="button" class="type-btn" data-type="borrow"><span class="arrow">↓</span> 我欠别人</button>
+        </div>
+
+        <div class="embed-row">
+          <input type="text" id="name" class="field-name" placeholder="对方姓名" maxlength="30" autocomplete="off">
+          <div class="field-amount">
+            <span>¥</span>
+            <input type="number" id="amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+          </div>
+          <button type="submit" class="add-btn" id="submitBtn">添加</button>
+          <button type="button" class="btn-cancel" id="cancelBtn">取消</button>
+        </div>
+      </form>
+
+      <div class="filters" id="filters">
+        <button class="chip" data-filter="lend">别人欠我</button>
+        <button class="chip" data-filter="borrow">我欠别人</button>
+      </div>
+
+      <div class="list" id="list"></div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var STORAGE_KEY = 'debt-tracker-v1';
+  var records = [];
+  var filter = 'all';
+  var editingId = null;
+  var currentType = 'lend';
+
+  var $ = function(s){ return document.querySelector(s); };
+
+  /* ---------- 数据 ---------- */
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      var d = raw ? JSON.parse(raw) : [];
+      records = Array.isArray(d) ? d : [];
+    }catch(e){ records = []; }
+  }
+  function save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+    catch(e){ toast('本地保存失败'); }
+  }
+  function uid(){
+    return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  }
+  function fmt(n){
+    var v = Number(n) || 0;
+    var neg = v < 0 ? '-' : '';
+    v = Math.abs(v);
+    var s = (Math.round(v * 100) / 100).toFixed(2);
+    var parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return neg + parts[0] + '.' + parts[1];
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  /* ---------- 汇总（两个板块） ---------- */
+  function renderSummary(){
+    var recv = 0, pay = 0;
+    records.forEach(function(r){
+      if(r.settled) return;
+      var a = Number(r.amount) || 0;
+      if(r.type === 'lend') recv += a; else pay += a;
+    });
+    $('#sumRecv').textContent = '¥' + fmt(recv);
+    $('#sumPay').textContent = '¥' + fmt(pay);
+  }
+
+  /* ---------- 列表 ---------- */
+  function itemHTML(r){
+    var isLend = r.type === 'lend';
+    var color = isLend ? 'green' : 'red';
+    var sign = isLend ? '+' : '−';
+    var badge = isLend ? '别人欠我' : '我欠别人';
+    var initial = (r.name || '?').trim().charAt(0) || '?';
+    var html = '';
+    html += '<div class="item ' + (r.settled ? 'settled' : '') + '" data-id="' + r.id + '">';
+    html +=   '<div class="avatar ' + color + '">' + esc(initial) + '</div>';
+    html +=   '<div class="info">';
+    html +=     '<div class="line1">';
+    html +=       '<span class="name">' + esc(r.name) + '</span>';
+    html +=       '<span class="badge ' + color + '">' + badge + '</span>';
+    if(r.settled) html += '<span class="badge gray">已结清</span>';
+    html +=     '</div>';
+    html +=   '</div>';
+    html +=   '<div class="right">';
+    html +=     '<div class="amount ' + color + '">' + sign + '¥' + fmt(r.amount) + '</div>';
+    html +=     '<div class="actions">';
+    html +=       '<button class="mini" data-action="settle" data-id="' + r.id + '">' + (r.settled ? '撤销' : '结清') + '</button>';
+    html +=       '<button class="mini" data-action="edit" data-id="' + r.id + '">编辑</button>';
+    html +=       '<button class="mini danger" data-action="del" data-id="' + r.id + '">删除</button>';
+    html +=     '</div>';
+    html +=   '</div>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderList(){
+    var list = records.filter(function(r){
+      if(filter === 'lend' && r.type !== 'lend') return false;
+      if(filter === 'borrow' && r.type !== 'borrow') return false;
+      return true;
+    });
+    list.sort(function(a,b){
+      if(!!a.settled !== !!b.settled) return a.settled ? 1 : -1;
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+
+    var box = $('#list');
+    if(list.length === 0){
+      var isEmptyAll = records.length === 0;
+      box.innerHTML = '<div class="empty">' +
+        '<div class="emoji">' + (isEmptyAll ? '📒' : '🔍') + '</div>' +
+        '<div class="t">' + (isEmptyAll ? '还没有任何记录' : '这里暂时没有记录') + '</div>' +
+        '<div class="s">' + (isEmptyAll ? '在顶部填写姓名和金额，点“添加”开始记账' : '切换上方筛选看看其他记录') + '</div>' +
+      '</div>';
+      return;
+    }
+    box.innerHTML = list.map(itemHTML).join('');
+  }
+
+  function render(){ renderSummary(); renderList(); }
+
+  /* ---------- 表单 ---------- */
+  function setType(t){
+    currentType = t;
+    var btns = document.querySelectorAll('.type-btn');
+    for(var i=0;i<btns.length;i++){
+      btns[i].classList.toggle('active', btns[i].getAttribute('data-type') === t);
+    }
+  }
+  function updateFormMode(){
+    var title = $('#formTitle');
+    var btn = $('#submitBtn');
+    var cancel = $('#cancelBtn');
+    if(editingId){
+      title.classList.add('editing');
+      btn.textContent = '保存';
+      cancel.classList.add('show');
+    }else{
+      title.classList.remove('editing');
+      btn.textContent = '添加';
+      cancel.classList.remove('show');
+    }
+  }
+  function resetForm(){
+    editingId = null;
+    $('#name').value = '';
+    $('#amount').value = '';
+    setType('lend');
+    updateFormMode();
+  }
+
+  function onSubmit(e){
+    e.preventDefault();
+    var name = $('#name').value.trim();
+    var amount = parseFloat($('#amount').value);
+
+    if(!name){ toast('请填写对方姓名'); $('#name').focus(); return; }
+    if(!(amount > 0)){ toast('金额需大于 0'); $('#amount').focus(); return; }
+
+    if(editingId){
+      var rec = null;
+      for(var i=0;i<records.length;i++){ if(records[i].id === editingId){ rec = records[i]; break; } }
+      if(rec){ rec.type = currentType; rec.name = name; rec.amount = amount; }
+      save(); resetForm(); render();
+      toast('已保存修改');
+    }else{
+      records.push({ id: uid(), type: currentType, name: name, amount: amount, settled: false, createdAt: Date.now() });
+      save();
+      $('#name').value = ''; $('#amount').value = '';
+      render();
+      toast('已记录一笔');
+      $('#name').focus();
+    }
+  }
+
+  /* ---------- 操作 ---------- */
+  function findRec(id){
+    for(var i=0;i<records.length;i++){ if(records[i].id === id) return records[i]; }
+    return null;
+  }
+
+  function onListClick(e){
+    var btn = e.target.closest('button[data-action]');
+    if(!btn) return;
+    var action = btn.getAttribute('data-action');
+    var id = btn.getAttribute('data-id');
+    var rec = findRec(id);
+    if(!rec) return;
+
+    if(action === 'settle'){
+      rec.settled = !rec.settled;
+      save(); render();
+      toast(rec.settled ? '已标记结清' : '已撤销结清');
+    }
+    else if(action === 'del'){
+      if(confirm('确定删除「' + rec.name + '」的这笔记录吗？')){
+        records = records.filter(function(r){ return r.id !== id; });
+        save(); render();
+        if(editingId === id) resetForm();
+        toast('已删除');
+      }
+    }
+    else if(action === 'edit'){
+      editingId = id;
+      setType(rec.type);
+      $('#name').value = rec.name;
+      $('#amount').value = rec.amount;
+      updateFormMode();
+      $('#formTitle').scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(function(){ $('#name').focus(); }, 250);
+    }
+  }
+
+  /* ---------- Toast ---------- */
+  var toastTimer = null;
+  function toast(msg){
+    var t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1900);
+  }
+
+  /* ---------- 筛选（仅两个，可再次点击取消） ---------- */
+  function syncChips(){
+    var chips = $('#filters').querySelectorAll('.chip');
+    for(var i=0;i<chips.length;i++){
+      chips[i].classList.toggle('active', chips[i].getAttribute('data-filter') === filter);
+    }
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  function bindEvents(){
+    document.querySelectorAll('.type-btn').forEach(function(b){
+      b.addEventListener('click', function(){ setType(b.getAttribute('data-type')); });
+    });
+    $('#debtForm').addEventListener('submit', onSubmit);
+    $('#cancelBtn').addEventListener('click', function(){ resetForm(); toast('已取消编辑'); });
+
+    var chips = $('#filters').querySelectorAll('.chip');
+    for(var i=0;i<chips.length;i++){
+      chips[i].addEventListener('click', function(){
+        var f = this.getAttribute('data-filter');
+        filter = (filter === f) ? 'all' : f;
+        syncChips();
+        renderList();
+      });
+    }
+
+    $('#list').addEventListener('click', onListClick);
+  }
+
+  /* ---------- 初始化 ---------- */
+  load();
+  setType('lend');
+  updateFormMode();
+  syncChips();
+  bindEvents();
+  render();
+})();
+</script>
+</body>
+</html>
