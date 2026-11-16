@@ -1153,7 +1153,6 @@ async function readWallpaper(){
 
  return new Promise((resolve,reject)=>{
   const tx=db.transaction(WALL_STORE,'readonly');
-
   const request=tx.objectStore(WALL_STORE).get('background');
 
   request.onsuccess=()=>{
@@ -1166,6 +1165,7 @@ async function readWallpaper(){
    db.close();
    reject(request.error);
   };
+ });
 }
 
 function applyWallpaper(blob){
