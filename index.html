@@ -50,7 +50,7 @@ button{color:inherit;border:0;cursor:pointer}
 }
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:27px}
 
-/* ===== 隐藏了品牌文字，仅保留金币图标 ===== */
+/* ===== 首页顶部仅保留金币 ===== */
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
 .coin{
  width:49px;height:49px;border-radius:50%;flex-shrink:0;
@@ -145,4 +145,558 @@ button{color:inherit;border:0;cursor:pointer}
 .history-amount.repay{color:#8ff0b2}
 .history-amount.increase{color:#8ecaff}
 .no-history{font-size:12px;color:rgba(255,255,255,.5);padding:12px 0}
-.toast{position:fixed;z-index:30;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%);padding:11px 18px;border-radius:20px;background:rgba(25,20,39,.92);border:1px
+.toast{position:fixed;z-index:30;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%);padding:11px 18px;border-radius:20px;background:rgba(25,20,39,.92);border:1px solid rgba(255,255,255,.2);font-size:13px;display:none;max-width:86vw;text-align:center;line-height:1.4}
+.toast.show{display:block}
+</style>
+</head>
+
+<body>
+<div id="wallpaperLayer">
+ <img id="wallpaperImage" alt="">
+ <div id="wallpaperShade"></div>
+</div>
+
+<div class="app">
+ <header class="header">
+  <div class="brand">
+   <div class="coin">🪙</div>
+  </div>
+  <button class="wallpaper-btn" id="chooseWallpaper" aria-label="更换壁纸">＋</button>
+  <input id="wallpaperInput" type="file" accept="image/*">
+ </header>
+
+ <div class="add-area">
+  <button class="primary-btn" id="openAdd"><span>＋</span>添加账单</button>
+ </div>
+
+ <div class="filters">
+  <button class="filter-btn" data-filter="out">欠款</button>
+  <button class="filter-btn active" data-filter="in">借款</button>
+ </div>
+
+ <h2 class="section-title">账单记录</h2>
+ <div class="bill-list" id="billList"></div>
+</div>
+
+<!-- 添加账单 -->
+<div class="modal" id="addModal">
+ <div class="modal-card">
+  <div class="modal-head">
+   <div class="modal-title">添加账单</div>
+   <button class="close-btn" data-close="addModal">×</button>
+  </div>
+  <div class="field">
+   <label>账单类型</label>
+   <div class="type-options" id="typeOptions">
+    <button class="type-option" data-type="out">欠款（我欠别人）</button>
+    <button class="type-option active" data-type="in">借款（别人欠我）</button>
+   </div>
+  </div>
+  <div class="field">
+   <label>姓名 / 备注</label>
+   <input id="billName" type="text" maxlength="40" placeholder="请输入姓名或备注">
+  </div>
+  <div class="field">
+   <label>金额（元）</label>
+   <input id="billAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="请输入金额">
+  </div>
+  <button class="action-btn" id="saveBill">保存账单</button>
+ </div>
+</div>
+
+<!-- 账单详情 -->
+<div class="modal" id="detailModal">
+ <div class="modal-card">
+  <div class="modal-head">
+   <div class="modal-title">账单详情</div>
+   <button class="close-btn" data-close="detailModal">×</button>
+  </div>
+  <div id="detailContent"></div>
+ </div>
+</div>
+
+<!-- 增加金额 -->
+<div class="modal" id="increaseModal">
+ <div class="modal-card">
+  <div class="modal-head">
+   <div class="modal-title">增加金额</div>
+   <button class="close-btn" data-close="increaseModal">×</button>
+  </div>
+  <div class="field">
+   <label>本次增加金额（元）</label>
+   <input id="increaseAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="请输入增加金额">
+  </div>
+  <button class="action-btn" id="confirmIncrease">确认增加</button>
+ </div>
+</div>
+
+<!-- 还款 / 收款 -->
+<div class="modal" id="repayModal">
+ <div class="modal-card">
+  <div class="modal-head">
+   <div class="modal-title" id="repayTitle">还款记录</div>
+   <button class="close-btn" data-close="repayModal">×</button>
+  </div>
+  <div class="field">
+   <label id="repayLabel">本次还款金额（元）</label>
+   <input id="repayAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="请输入金额">
+  </div>
+  <button class="action-btn" id="confirmRepay">确认</button>
+ </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= PWA：动态生成图标 + manifest ================= */
+function drawIcon(size){
+ const c=document.createElement('canvas');
+ c.width=c.height=size;
+ const ctx=c.getContext('2d');
+ 
+ // 背景
+ const bg=ctx.createLinearGradient(0,0,size,size);
+ bg.addColorStop(0,'#9a6dff');
+ bg.addColorStop(1,'#5533b5');
+ ctx.fillStyle=bg;
+ ctx.fillRect(0,0,size,size);
+ 
+ // 光晕
+ const halo=ctx.createRadialGradient(size*.5,size*.28,0,size*.5,size*.28,size*.8);
+ halo.addColorStop(0,'rgba(255,255,255,.22)');
+ halo.addColorStop(1,'rgba(255,255,255,0)');
+ ctx.fillStyle=halo;
+ ctx.fillRect(0,0,size,size);
+ 
+ // ===== 修改部分：调整金币居中并放大，去掉底部文字 =====
+ const cx=size*.5, cy=size*.5, r=size*.32; // 原 cy=size*.42, r=size*.235
+ const coin=ctx.createRadialGradient(cx-r*.35,cy-r*.4,r*.12,cx,cy,r);
+ coin.addColorStop(0,'#fffbd0');
+ coin.addColorStop(.32,'#ffd95f');
+ coin.addColorStop(.75,'#e89b16');
+ coin.addColorStop(1,'#a75a09');
+ ctx.beginPath();
+ ctx.arc(cx,cy,r,0,Math.PI*2);
+ ctx.fillStyle=coin;
+ ctx.fill();
+ ctx.lineWidth=size*.025;
+ ctx.strokeStyle='rgba(255,247,200,.85)';
+ ctx.stroke();
+ 
+ // ¥ 符号
+ ctx.textAlign='center';
+ ctx.textBaseline='middle';
+ ctx.fillStyle='rgba(133,70,8,.95)';
+ ctx.font='bold '+(size*.36)+'px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif'; // 文字放大
+ ctx.fillText('¥',cx,cy+size*.02);
+ 
+ return c.toDataURL('image/png');
+}
+
+const ICON_512=drawIcon(512);
+const ICON_192=drawIcon(192);
+const ICON_180=drawIcon(180);
+
+function addHeadLink(rel,href,attrs){
+ const link=document.createElement('link');
+ link.rel=rel;
+ link.href=href;
+ if(attrs)for(const k in attrs)link.setAttribute(k,attrs[k]);
+ document.head.appendChild(link);
+ return link;
+}
+
+addHeadLink('icon',ICON_192,{sizes:'192x192',type:'image/png'});
+addHeadLink('apple-touch-icon',ICON_180,{sizes:'180x180'});
+addHeadLink('apple-touch-icon',ICON_192,{sizes:'192x192'});
+addHeadLink('apple-touch-icon',ICON_512,{sizes:'512x512'});
+addHeadLink('apple-touch-icon-precomposed',ICON_180,{sizes:'180x180'});
+
+(function injectManifest(){
+ try{
+  if(!/^https?:$/.test(location.protocol))return;
+  const dir=location.origin+location.pathname.replace(/[^/]*$/,'');
+  const manifest={
+   name:'账本',
+   short_name:'账本',
+   description:'简单好用的借还账本',
+   lang:'zh-CN',
+   start_url:location.origin+location.pathname+location.search,
+   scope:dir,
+   display:'standalone',
+   display_override:['standalone','minimal-ui','browser'],
+   orientation:'portrait',
+   background_color:'#171321',
+   theme_color:'#171321',
+   icons:[
+    {src:ICON_192,sizes:'192x192',type:'image/png',purpose:'any'},
+    {src:ICON_512,sizes:'512x512',type:'image/png',purpose:'any'}
+   ]
+  };
+  const blobURL=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'}));
+  addHeadLink('manifest',blobURL);
+ }catch(err){
+  console.warn('manifest 注入失败',err);
+ }
+})();
+
+/* ================= 业务逻辑 ================= */
+const BILL_KEY='debt-tracker-v1';
+let bills=[];
+let currentFilter='in';
+let selectedType='in';
+let currentBillId=null;
+let wallpaperURL=null;
+
+const $=id=>document.getElementById(id);
+const money=n=>Number(n||0).toFixed(2);
+const nowText=()=>new Date().toLocaleString('zh-CN',{hour12:false});
+
+function toast(message){
+ const el=$('toast');
+ el.textContent=message;
+ el.classList.add('show');
+ clearTimeout(toast.timer);
+ toast.timer=setTimeout(()=>el.classList.remove('show'),1900);
+}
+
+function openModal(id){
+ $(id).classList.add('show');
+ document.body.classList.add('modal-open');
+}
+function closeModal(id){
+ $(id).classList.remove('show');
+ if(!document.querySelector('.modal.show'))document.body.classList.remove('modal-open');
+}
+
+document.querySelectorAll('[data-close]').forEach(btn=>{
+ btn.addEventListener('click',()=>closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal').forEach(modal=>{
+ modal.addEventListener('click',e=>{
+  if(e.target===modal)closeModal(modal.id);
+ });
+});
+
+/* 账单数据 */
+function normalizeBill(item,index){
+ const original=Number(item.originalAmount ?? item.totalAmount ?? item.amount ?? item.money ?? 0);
+ const paid=Number(item.paidAmount ?? item.repaidAmount ?? item.paid ?? 0);
+ const amount=Number(item.amount ?? Math.max(0,original-paid));
+ return {
+  id:item.id ?? ('bill-'+Date.now()+'-'+index),
+  type:item.type==='out'?'out':'in',
+  name:item.name ?? item.title ?? item.remark ?? '未命名账单',
+  originalAmount:Math.max(original,amount+paid),
+  paidAmount:paid,
+  amount:Math.max(0,amount),
+  history:Array.isArray(item.history)?item.history:[],
+  createdAt:item.createdAt ?? item.date ?? nowText()
+ };
+}
+
+function load(){
+ try{
+  const raw=localStorage.getItem(BILL_KEY);
+  const data=raw?JSON.parse(raw):[];
+  bills=Array.isArray(data)?data.map(normalizeBill):[];
+ }catch(e){
+  bills=[];
+ }
+}
+function save(){
+ localStorage.setItem(BILL_KEY,JSON.stringify(bills));
+}
+
+function renderList(){
+ const list=$('billList');
+ const filtered=bills.filter(b=>b.type===currentFilter);
+ list.innerHTML='';
+ document.querySelectorAll('.filter-btn').forEach(btn=>{
+  btn.classList.toggle('active',btn.dataset.filter===currentFilter);
+ });
+ if(!filtered.length){
+  list.innerHTML='<div class="empty glass">暂时没有账单记录</div>';
+  return;
+ }
+ filtered.slice().reverse().forEach(b=>{
+  const done=b.amount<=0;
+  const card=document.createElement('div');
+  card.className='bill-card glass';
+  card.innerHTML=`
+   <div class="bill-info">
+    <div class="bill-name"></div>
+    <div class="bill-type-tag">${b.type==='in'?'借款':'欠款'}</div>
+   </div>
+   <div class="bill-right">
+    <div class="bill-amount">¥${money(b.amount)}</div>
+    <div class="bill-status ${done?'done':''}">${done?'已结清':'剩余金额'}</div>
+   </div>`;
+  card.querySelector('.bill-name').textContent=b.name;
+  card.addEventListener('click',()=>openDetail(b.id));
+  list.appendChild(card);
+ });
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+ btn.addEventListener('click',()=>{
+  currentFilter=btn.dataset.filter;
+  renderList();
+ });
+});
+
+/* 添加账单 */
+function chooseType(type){
+ selectedType=type;
+ document.querySelectorAll('.type-option').forEach(btn=>{
+  btn.classList.toggle('active',btn.dataset.type===type);
+ });
+}
+document.querySelectorAll('.type-option').forEach(btn=>{
+ btn.addEventListener('click',()=>chooseType(btn.dataset.type));
+});
+
+$('openAdd').addEventListener('click',()=>{
+ chooseType(currentFilter);
+ $('billName').value='';
+ $('billAmount').value='';
+ openModal('addModal');
+});
+
+$('saveBill').addEventListener('click',()=>{
+ const name=$('billName').value.trim();
+ const amount=Number($('billAmount').value);
+ if(!name){toast('请输入姓名或备注');return}
+ if(!Number.isFinite(amount)||amount<=0){toast('请输入正确金额');return}
+ const bill={
+  id:'bill-'+Date.now()+'-'+Math.random().toString(16).slice(2,7),
+  type:selectedType,
+  name,
+  originalAmount:amount,
+  paidAmount:0,
+  amount,
+  history:[],
+  createdAt:nowText()
+ };
+ bills.push(bill);
+ save();
+ renderList();
+ closeModal('addModal');
+ toast('账单已添加');
+});
+
+/* 账单详情 */
+function getBill(id){return bills.find(b=>String(b.id)===String(id))}
+function openDetail(id){
+ currentBillId=id;
+ renderDetail();
+ openModal('detailModal');
+}
+
+function renderDetail(){
+ const b=getBill(currentBillId);
+ if(!b){closeModal('detailModal');return}
+ const done=b.amount<=0;
+ const history=b.history.slice().reverse();
+ let historyHTML='';
+ if(history.length){
+  historyHTML=history.map(h=>{
+   const isIncrease=h.type==='increase';
+   return `<div class="history-item">
+    <div>
+     <div class="history-type">${isIncrease?'增加金额':'还款记录'}</div>
+     <div class="history-date">${escapeHTML(h.date||'')}</div>
+    </div>
+    <div class="history-amount ${isIncrease?'increase':'repay'}">${isIncrease?'+':'−'}¥${money(h.amount)}</div>
+   </div>`;
+  }).join('');
+ }else{
+  historyHTML='<div class="no-history">暂无操作记录</div>';
+ }
+ $('detailContent').innerHTML=`
+  <div class="detail-name">${escapeHTML(b.name)}</div>
+  <div class="detail-summary">
+   <div class="summary-cell"><div class="summary-label">累计账单</div><div class="summary-value">¥${money(b.originalAmount)}</div></div>
+   <div class="summary-cell"><div class="summary-label">累计已还</div><div class="summary-value">¥${money(b.paidAmount)}</div></div>
+   <div class="summary-cell"><div class="summary-label">剩余金额</div><div class="summary-value">¥${money(b.amount)}</div></div>
+  </div>
+  <div class="summary-cell" style="text-align:left;margin-bottom:13px">
+   <div class="summary-label" style="margin-bottom:8px">账单类型</div>
+   <div class="bill-type-tag" style="margin-top:0;font-size:12px;padding:4px 12px">${b.type==='in'?'借款':'欠款'}</div>
+  </div>
+  <button class="action-btn" id="detailIncrease">＋ 增加金额</button>
+  ${done?'':'<button class="secondary-btn" id="detailRepay">'+(b.type==='in'?'确认收款':'记录还款')+'</button>'}
+  <div class="history-title">账单操作记录</div>
+  ${historyHTML}`;
+ $('detailIncrease').addEventListener('click',()=>{
+  $('increaseAmount').value='';
+  closeModal('detailModal');
+  openModal('increaseModal');
+ });
+ const repayBtn=$('detailRepay');
+ if(repayBtn)repayBtn.addEventListener('click',()=>{
+  $('repayAmount').value='';
+  $('repayTitle').textContent=b.type==='in'?'收款记录':'还款记录';
+  $('repayLabel').textContent=b.type==='in'?'本次收款金额（元）':'本次还款金额（元）';
+  closeModal('detailModal');
+  openModal('repayModal');
+ });
+}
+
+function escapeHTML(str){
+ return String(str).replace(/[&<>"']/g,c=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+ }[c]));
+}
+
+/* 增加金额 */
+function increaseBillAmount(id,amount){
+ const b=getBill(id);
+ if(!b)return false;
+ b.originalAmount=Number(b.originalAmount||0)+amount;
+ b.amount=Number(b.amount||0)+amount;
+ b.history.push({type:'increase',amount,date:nowText()});
+ save();
+ renderList();
+ return true;
+}
+$('confirmIncrease').addEventListener('click',()=>{
+ const amount=Number($('increaseAmount').value);
+ if(!Number.isFinite(amount)||amount<=0){toast('请输入正确金额');return}
+ if(!increaseBillAmount(currentBillId,amount))return;
+ closeModal('increaseModal');
+ renderDetail();
+ openModal('detailModal');
+ toast('金额已增加');
+});
+
+/* 部分还款 / 收款 */
+function makeRepayment(id,amount){
+ const b=getBill(id);
+ if(!b||b.amount<=0)return false;
+ if(amount>b.amount+0.000001)return false;
+ b.paidAmount=Number(b.paidAmount||0)+amount;
+ b.amount=Math.max(0,Number(b.originalAmount||0)-b.paidAmount);
+ if(b.amount<0.005)b.amount=0;
+ b.history.push({type:'repay',amount,date:nowText()});
+ save();
+ renderList();
+ return true;
+}
+$('confirmRepay').addEventListener('click',()=>{
+ const b=getBill(currentBillId);
+ if(!b)return;
+ const amount=Number($('repayAmount').value);
+ if(!Number.isFinite(amount)||amount<=0){toast('请输入正确金额');return}
+ if(amount>b.amount+0.000001){toast('金额不能超过剩余金额');return}
+ if(!makeRepayment(currentBillId,amount))return;
+ closeModal('repayModal');
+ renderDetail();
+ openModal('detailModal');
+ toast(b.type==='in'?'收款已记录':'还款已记录');
+});
+
+/* 壁纸：IndexedDB 本地保存 */
+const WALL_DB='debt-tracker-wallpaper';
+const WALL_STORE='settings';
+
+function openWallpaperDB(){
+ return new Promise((resolve,reject)=>{
+  const request=indexedDB.open(WALL_DB,1);
+  request.onupgradeneeded=()=>{
+   const db=request.result;
+   if(!db.objectStoreNames.contains(WALL_STORE)){
+    db.createObjectStore(WALL_STORE);
+   }
+  };
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ });
+}
+
+async function saveWallpaper(blob){
+ const db=await openWallpaperDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(WALL_STORE,'readwrite');
+  tx.objectStore(WALL_STORE).put(blob,'background');
+  tx.oncomplete=()=>{db.close();resolve()};
+  tx.onerror=()=>{db.close();reject(tx.error)};
+ });
+}
+
+async function readWallpaper(){
+ const db=await openWallpaperDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(WALL_STORE,'readonly');
+  const request=tx.objectStore(WALL_STORE).get('background');
+  request.onsuccess=()=>{db.close();resolve(request.result||null)};
+  request.onerror=()=>{db.close();reject(request.error)};
+ });
+}
+
+function applyWallpaper(blob){
+ if(wallpaperURL)URL.revokeObjectURL(wallpaperURL);
+ wallpaperURL=URL.createObjectURL(blob);
+ $('wallpaperImage').src=wallpaperURL;
+ $('wallpaperImage').style.display='block';
+}
+
+async function compressImage(file){
+ if(file.size>20*1024*1024)throw new Error('图片不能超过20MB');
+ if(!window.createImageBitmap)return file;
+ const bitmap=await createImageBitmap(file);
+ const max=1800;
+ const scale=Math.min(1,max/Math.max(bitmap.width,bitmap.height));
+ const canvas=document.createElement('canvas');
+ canvas.width=Math.round(bitmap.width*scale);
+ canvas.height=Math.round(bitmap.height*scale);
+ const ctx=canvas.getContext('2d');
+ ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+ bitmap.close?.();
+ return await new Promise(resolve=>{
+  canvas.toBlob(blob=>resolve(blob||file),'image/jpeg',.86);
+ });
+}
+
+$('chooseWallpaper').addEventListener('click',()=>$('wallpaperInput').click());
+$('wallpaperInput').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];
+ if(!file)return;
+ if(!file.type.startsWith('image/')){toast('请选择图片文件');return}
+ try{
+  const compressed=await compressImage(file);
+  await saveWallpaper(compressed);
+  applyWallpaper(compressed);
+  toast('壁纸更换成功');
+ }catch(err){
+  console.error(err);
+  toast(err.message||'壁纸保存失败');
+ }
+ e.target.value='';
+});
+
+async function initWallpaper(){
+ try{
+  const blob=await readWallpaper();
+  if(blob)applyWallpaper(blob);
+ }catch(err){console.error('读取壁纸失败',err)}
+}
+
+/* 禁止双击缩放 */
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gestureend',e=>e.preventDefault(),{passive:false});
+let lastTouchEnd=0;
+document.addEventListener('touchend',e=>{
+ const now=Date.now();
+ if(now-lastTouchEnd<=300)e.preventDefault();
+ lastTouchEnd=now;
+},{passive:false});
+
+/* 初始化 */
+load();
+renderList();
+initWallpaper();
+</script>
+</body>
+</html>
